@@ -32,6 +32,9 @@ logging.getLogger("yfinance").setLevel(logging.ERROR)
 # =========================
 # Configuration
 # =========================
+print("Google Drive mounting (no pre-mount deletion is performed).")
+drive.mount("/content/drive", force_remount=False)
+
 BASE = Path("/content/drive/MyDrive/ETF_Data")
 INPUT = BASE / "input"
 MASTER = BASE / "master"
@@ -49,9 +52,6 @@ FETCH_START = "2021-01-01"
 FETCH_END = (date.today() + timedelta(days=1)).isoformat()  # yfinance end is exclusive
 CHECKPOINT_EVERY = 25
 SLEEP_SECONDS = 0.15
-
-print("Google Drive mounting (no pre-mount deletion is performed).")
-drive.mount("/content/drive", force_remount=False)
 
 # =========================
 # Helpers
