@@ -18,8 +18,13 @@ import logging
 import re
 import os
 import shutil
+import subprocess
+import sys
 
-!pip -q install yfinance pyarrow openpyxl pandas numpy tqdm pykrx
+subprocess.check_call([
+    sys.executable, "-m", "pip", "install", "-q",
+    "yfinance", "pyarrow", "openpyxl", "pandas", "numpy", "tqdm", "pykrx"
+])
 
 import numpy as np
 import pandas as pd
