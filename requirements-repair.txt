@@ -1,4 +1,6 @@
-pandas>=2.0 nnumpy>=1.24 nyfinance>=0.2.40
+pandas>=2.0
+numpy>=1.24
+yfinance>=0.2.40
 pyarrow>=14
 openpyxl>=3.1
 pykrx>=1.0.48
