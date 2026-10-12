@@ -27,6 +27,11 @@ BATCH_SIZE = 25
 MAX_RETRIES = 3
 SLEEP_SECONDS = 0.15
 EXPORT_EXCEL = True
+SAMPLE_MODE = True  # First run only the 7 known test ETFs; set False for full universe after validation.
+SAMPLE_TICKERS = {
+    ("KR", "360750"), ("KR", "069500"), ("KR", "102110"), ("KR", "252670"),
+    ("US", "SPY"), ("US", "QQQ"), ("US", "IVV"),
+}
 EXCEL_DATA_ROWS = 1_000_000  # below Excel's 1,048,576 row limit
 # ---------------------------------------------------------------
 
@@ -253,6 +258,20 @@ def main() -> None:
     if universe.empty:
         raise FileNotFoundError(f"No universe rows. Expected files in {INPUT}: {KR_FILE.name}, {US_FILE.name}")
     universe = universe.drop_duplicates(["market", "ticker"], keep="first").reset_index(drop=True)
+    if SAMPLE_MODE:
+        before_count = len(universe)
+        universe = universe[
+            universe.apply(lambda row: (row["market"], row["ticker"]) in SAMPLE_TICKERS, axis=1)
+        ].reset_index(drop=True)
+        found = set(zip(universe["market"], universe["ticker"]))
+        missing_sample = sorted(SAMPLE_TICKERS - found)
+        print(f"SAMPLE_MODE=True: selected {len(universe)} of {before_count} universe rows.")
+        if missing_sample:
+            print("Sample tickers absent from the supplied universe files:", missing_sample)
+        if universe.empty:
+            raise RuntimeError("No sample tickers matched the universe. Check ticker codes and input files.")
+    else:
+        print(f"SAMPLE_MODE=False: full universe selected ({len(universe):,} instruments).")
     universe.to_csv(UNIVERSE_OUT, index=False, encoding="utf-8-sig")
 
     universe_signature = hashlib.sha256(
