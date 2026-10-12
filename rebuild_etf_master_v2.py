@@ -19,8 +19,8 @@ INPUT = BASE / "input"
 OUT = BASE / "rebuild_v2"
 CHECKPOINT = OUT / "checkpoints"
 LOGS = OUT / "logs"
-KR_FILE = INPUT / "한국_전체_ETF_유니버스.xlsx"
-US_FILE = INPUT / "미국_전체_ETF_유니버스.xlsx"
+KR_FILE = INPUT / "KR_ETF_Universe.xlsx"
+US_FILE = INPUT / "US_ETF_Universe.xlsx"
 FETCH_START = "1990-01-01"   # provider's earliest available history from this date
 FETCH_END = None             # exclusive; None = latest available
 BATCH_SIZE = 25
