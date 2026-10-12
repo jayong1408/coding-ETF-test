@@ -3,7 +3,7 @@
 ## Colab execution
 1. Mount Google Drive: from google.colab import drive; drive.mount('/content/drive')
 2. Install dependencies: pip install yfinance pyarrow openpyxl pandas numpy
-3. Put 한국_전체_ETF_유니버스.xlsx and 미국_전체_ETF_유니버스.xlsx under MyDrive/ETF_Data/input/.
+3. Put KR_ETF_Universe.xlsx and US_ETF_Universe.xlsx under MyDrive/ETF_Data/input/.
 4. Run rebuild_etf_master_v2.py in Colab.
 5. Outputs are written only to MyDrive/ETF_Data/rebuild_v2/. Existing V1 files are not deleted or overwritten.
 
