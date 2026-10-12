@@ -24,6 +24,13 @@ TARGETS = [
     {"ticker": "360750", "symbol": "360750.KS", "market": "KR", "start": "2022-12-20", "end": "2023-01-03", "focus": "open-only gaps"},
 ]
 FIELDS = ["Open", "High", "Low", "Close", "Adj Close", "Volume", "Dividends", "Stock Splits", "Capital Gains"]
+# User-reported dates to explicitly check for missing rows in the provider response.
+EXPECTED_DATES = {
+    "069500": ["2023-07-03", "2023-07-04", "2023-07-05", "2023-07-11", "2023-07-12", "2023-07-13"],
+    "102110": ["2023-07-03", "2023-07-04", "2023-07-05", "2023-07-11", "2023-07-12", "2023-07-13"],
+    "252670": ["2023-07-03", "2023-07-04", "2023-07-05", "2023-07-11", "2023-07-12", "2023-07-13"],
+    "360750": ["2022-12-22", "2022-12-23", "2022-12-26", "2022-12-27", "2022-12-28", "2022-12-29"],
+}
 
 def flatten(df):
     if isinstance(df.columns, pd.MultiIndex):
@@ -54,6 +61,18 @@ def main():
             for f in FIELDS:
                 if f not in raw.columns:
                     raw[f] = np.nan
+            # Explicitly detect dates that are absent as rows, not just rows with null fields.
+            returned_dates = set(raw["date"].dropna().dt.strftime("%Y-%m-%d"))
+            for expected_date in EXPECTED_DATES.get(item["ticker"], []):
+                if expected_date not in returned_dates:
+                    reports.append({
+                        "market": "KR", "ticker": item["ticker"], "provider_symbol": item["symbol"],
+                        "date": expected_date, "status": "DATE_ROW_ABSENT_FROM_PROVIDER_RESPONSE",
+                        "missing_fields": "NO_ROW_RETURNED", "open": np.nan, "high": np.nan,
+                        "low": np.nan, "close": np.nan, "adj_close": np.nan, "volume": np.nan,
+                        "window_start": item["start"], "window_end_exclusive": item["end"],
+                        "raw_file": "", "error": "Expected date was not present in returned rows; verify exchange calendar and provider coverage.",
+                    })
             raw["market"] = item["market"]
             raw["ticker"] = item["ticker"]
             raw["provider_symbol"] = item["symbol"]
