@@ -5,7 +5,7 @@
 Real provider observations only. No synthetic fallback. V1 files are never deleted.
 """
 from __future__ import annotations
-import json, logging, re, time
+import hashlib, json, logging, re, time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -255,10 +255,34 @@ def main() -> None:
     universe = universe.drop_duplicates(["market", "ticker"], keep="first").reset_index(drop=True)
     universe.to_csv(UNIVERSE_OUT, index=False, encoding="utf-8-sig")
 
+    universe_signature = hashlib.sha256(
+        universe[["market", "ticker"]].sort_values(["market", "ticker"]).to_csv(index=False).encode("utf-8")
+    ).hexdigest()
+    prior_manifest = {}
+    if MANIFEST_OUT.exists():
+        try:
+            prior_manifest = json.loads(MANIFEST_OUT.read_text(encoding="utf-8"))
+        except Exception:
+            prior_manifest = {}
+    checkpoint_exists = any(CHECKPOINT.glob("batch_*.parquet")) or any(CHECKPOINT.glob("status_*.csv"))
+    same_run_config = (
+        prior_manifest.get("fetch_start") == FETCH_START
+        and prior_manifest.get("fetch_end_exclusive") == FETCH_END
+        and prior_manifest.get("universe_signature") == universe_signature
+    )
+    if checkpoint_exists and prior_manifest and not same_run_config:
+        raise RuntimeError(
+            "Existing checkpoints belong to a different date range or universe. "
+            "To avoid mixing runs, move the existing rebuild_v2/checkpoints folder aside "
+            "and archive run_manifest.json before starting a new rebuild."
+        )
+
     manifest = {
-        "run_id": RUN_ID, "started_at_utc": datetime.now(timezone.utc).isoformat(),
+        "run_id": prior_manifest.get("run_id", RUN_ID) if same_run_config else RUN_ID,
+        "started_at_utc": prior_manifest.get("started_at_utc", datetime.now(timezone.utc).isoformat()) if same_run_config else datetime.now(timezone.utc).isoformat(),
         "fetch_start": FETCH_START, "fetch_end_exclusive": FETCH_END,
-        "universe_rows": len(universe), "source": "Yahoo Finance via yfinance",
+        "universe_rows": len(universe), "universe_signature": universe_signature,
+        "source": "Yahoo Finance via yfinance",
         "synthetic_data_allowed": False, "output_directory": str(OUT),
         "warning": "This rebuild does not itself guarantee universe completeness or eliminate survivorship bias.",
     }
