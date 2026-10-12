@@ -1,0 +1,28 @@
+name: Validate ETF rebuild V2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "rebuild_etf_master_v2.py"
+      - "ETF_Daily_Master_V2_Colab.ipynb"
+      - ".github/workflows/validate-etf-rebuild-v2.yml"
+  push:
+    branches: ["rebuild/etf-master-v2"]
+    paths:
+      - "rebuild_etf_master_v2.py"
+      - "ETF_Daily_Master_V2_Colab.ipynb"
+      - ".github/workflows/validate-etf-rebuild-v2.yml"
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile Python script
+        run: python -m py_compile rebuild_etf_master_v2.py
+      - name: Validate notebook JSON
+        run: python -c "import json; n=json.load(open('ETF_Daily_Master_V2_Colab.ipynb', encoding='utf-8')); assert n['nbformat']==4; assert len(n['cells']) >= 3; print('Notebook JSON valid')"
