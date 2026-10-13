@@ -1,114 +1,143 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Targeted Yahoo Finance diagnostic for suspected Korean ETF date/field gaps.
-
-This script does not alter ETF_Daily_Master_v2 or fill missing values.
-It saves provider responses and a compact diagnostic report to Drive.
+"""Multi-path diagnostic for Korean ETF historical gaps.
+Does not modify the master, invent prices, or fill missing values.
 """
 from pathlib import Path
 from datetime import datetime, timezone
-import json
+import json, time
 import pandas as pd
 import numpy as np
 import yfinance as yf
+import requests
 
 BASE = Path("/content/drive/MyDrive/ETF_Data")
-OUT = BASE / "diagnostics_v2"
+OUT = BASE / "diagnostics_v3"
 OUT.mkdir(parents=True, exist_ok=True)
-
-# Period end is exclusive. Windows include the dates reported by the user.
 TARGETS = [
-    {"ticker": "069500", "symbol": "069500.KS", "market": "KR", "start": "2023-07-01", "end": "2023-07-18", "focus": "common full-row gaps"},
-    {"ticker": "102110", "symbol": "102110.KS", "market": "KR", "start": "2023-07-01", "end": "2023-07-18", "focus": "common full-row gaps"},
-    {"ticker": "252670", "symbol": "252670.KS", "market": "KR", "start": "2023-07-01", "end": "2023-07-18", "focus": "common full-row gaps"},
-    {"ticker": "360750", "symbol": "360750.KS", "market": "KR", "start": "2022-12-20", "end": "2023-01-03", "focus": "open-only gaps"},
+    {"ticker":"069500","symbol":"069500.KS","start":"2023-07-01","end":"2023-07-18","dates":["2023-07-03","2023-07-04","2023-07-05","2023-07-11","2023-07-12","2023-07-13"]},
+    {"ticker":"102110","symbol":"102110.KS","start":"2023-07-01","end":"2023-07-18","dates":["2023-07-03","2023-07-04","2023-07-05","2023-07-11","2023-07-12","2023-07-13"]},
+    {"ticker":"252670","symbol":"252670.KS","start":"2023-07-01","end":"2023-07-18","dates":["2023-07-03","2023-07-04","2023-07-05","2023-07-11","2023-07-12","2023-07-13"]},
+    {"ticker":"360750","symbol":"360750.KS","start":"2022-12-20","end":"2023-01-03","dates":["2022-12-22","2022-12-23","2022-12-26","2022-12-27","2022-12-28","2022-12-29"]},
 ]
-FIELDS = ["Open", "High", "Low", "Close", "Adj Close", "Volume", "Dividends", "Stock Splits", "Capital Gains"]
-# User-reported dates to explicitly check for missing rows in the provider response.
-EXPECTED_DATES = {
-    "069500": ["2023-07-03", "2023-07-04", "2023-07-05", "2023-07-11", "2023-07-12", "2023-07-13"],
-    "102110": ["2023-07-03", "2023-07-04", "2023-07-05", "2023-07-11", "2023-07-12", "2023-07-13"],
-    "252670": ["2023-07-03", "2023-07-04", "2023-07-05", "2023-07-11", "2023-07-12", "2023-07-13"],
-    "360750": ["2022-12-22", "2022-12-23", "2022-12-26", "2022-12-27", "2022-12-28", "2022-12-29"],
-}
+FIELDS = ["Open","High","Low","Close","Adj Close","Volume","Dividends","Stock Splits","Capital Gains"]
+PRICE_FIELDS = ["Open","High","Low","Close","Adj Close","Volume"]
 
-def flatten(df):
+def normalize_frame(df):
+    if df is None or df.empty:
+        return pd.DataFrame()
+    df = df.copy()
     if isinstance(df.columns, pd.MultiIndex):
-        wanted = set(FIELDS)
-        df = df.copy()
-        df.columns = [next((str(p) for p in col if str(p) in wanted), str(col[0])) for col in df.columns]
+        # yfinance versions differ in MultiIndex level ordering; select actual price field explicitly.
+        cols=[]
+        for col in df.columns:
+            parts=[str(x) for x in col]
+            cols.append(next((x for x in parts if x in FIELDS), parts[-1]))
+        df.columns=cols
+    df=df.reset_index()
+    date_col=next((c for c in ["Date","Datetime","date","index"] if c in df.columns), df.columns[0])
+    df=df.rename(columns={date_col:"date"})
+    df["date"]=pd.to_datetime(df["date"],errors="coerce",utc=True).dt.tz_localize(None).dt.normalize()
+    for f in FIELDS:
+        if f not in df.columns: df[f]=np.nan
+        df[f]=pd.to_numeric(df[f],errors="coerce")
     return df
 
-def main():
-    reports, raw_files = [], []
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    for item in TARGETS:
-        row = dict(item)
-        try:
-            raw = yf.download(
-                item["symbol"], start=item["start"], end=item["end"],
-                auto_adjust=False, actions=True, repair=False, keepna=True,
-                progress=False, threads=False, group_by="column", timeout=30,
-            )
-            if raw is None or raw.empty:
-                row.update({"status": "EMPTY_RESPONSE", "rows": 0, "error": "Provider returned no rows"})
-                reports.append(row)
-                continue
-            raw = flatten(raw).reset_index()
-            date_col = "Date" if "Date" in raw.columns else ("Datetime" if "Datetime" in raw.columns else raw.columns[0])
-            raw = raw.rename(columns={date_col: "date"})
-            raw["date"] = pd.to_datetime(raw["date"], errors="coerce", utc=True).dt.tz_localize(None).dt.normalize()
-            for f in FIELDS:
-                if f not in raw.columns:
-                    raw[f] = np.nan
-            # Explicitly detect dates that are absent as rows, not just rows with null fields.
-            returned_dates = set(raw["date"].dropna().dt.strftime("%Y-%m-%d"))
-            for expected_date in EXPECTED_DATES.get(item["ticker"], []):
-                if expected_date not in returned_dates:
-                    reports.append({
-                        "market": "KR", "ticker": item["ticker"], "provider_symbol": item["symbol"],
-                        "date": expected_date, "status": "DATE_ROW_ABSENT_FROM_PROVIDER_RESPONSE",
-                        "missing_fields": "NO_ROW_RETURNED", "open": np.nan, "high": np.nan,
-                        "low": np.nan, "close": np.nan, "adj_close": np.nan, "volume": np.nan,
-                        "window_start": item["start"], "window_end_exclusive": item["end"],
-                        "raw_file": "", "error": "Expected date was not present in returned rows; verify exchange calendar and provider coverage.",
-                    })
-            raw["market"] = item["market"]
-            raw["ticker"] = item["ticker"]
-            raw["provider_symbol"] = item["symbol"]
-            raw["diagnostic_run_id"] = run_id
-            raw["retrieved_at_utc"] = datetime.now(timezone.utc).isoformat()
-            raw_path = OUT / f"raw_{item['ticker']}_{item['start']}_{item['end']}.csv"
-            raw.to_csv(raw_path, index=False, encoding="utf-8-sig")
-            raw_files.append(str(raw_path))
-            for _, r in raw.iterrows():
-                vals = {f: (pd.to_numeric(pd.Series([r[f]]), errors="coerce").iloc[0]) for f in FIELDS}
-                missing = [f for f in ["Open", "High", "Low", "Close", "Adj Close", "Volume"] if pd.isna(vals[f])]
-                if missing:
-                    reports.append({
-                        "market": "KR", "ticker": item["ticker"], "provider_symbol": item["symbol"],
-                        "date": r["date"].date().isoformat() if pd.notna(r["date"]) else "",
-                        "status": "ROW_WITH_MISSING_FIELDS", "missing_fields": ";".join(missing),
-                        "open": vals["Open"], "high": vals["High"], "low": vals["Low"],
-                        "close": vals["Close"], "adj_close": vals["Adj Close"], "volume": vals["Volume"],
-                        "window_start": item["start"], "window_end_exclusive": item["end"],
-                        "raw_file": str(raw_path), "error": "",
-                    })
-            row.update({"status": "SUCCESS", "rows": len(raw), "raw_file": str(raw_path), "error": ""})
-            reports.append(row)
-        except Exception as e:
-            row.update({"status": "ERROR", "rows": 0, "error": f"{type(e).__name__}: {str(e)[:300]}"})
-            reports.append(row)
-    pd.DataFrame(reports).to_csv(OUT / "ETF_Missing_Data_Diagnostic_v2.csv", index=False, encoding="utf-8-sig")
-    manifest = {
-        "run_id": run_id, "source": "Yahoo Finance via yfinance",
-        "synthetic_data_allowed": False, "raw_files": raw_files,
-        "report": str(OUT / "ETF_Missing_Data_Diagnostic_v2.csv"),
-        "note": "A successful response only describes the provider response at this retrieval time; it does not prove the provider was correct historically. No missing prices are filled.",
-    }
-    (OUT / "diagnostic_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps(manifest, ensure_ascii=False, indent=2))
-    print(pd.DataFrame(reports).to_string(index=False))
+def save_frame(df, path):
+    df.to_csv(path,index=False,encoding="utf-8-sig")
 
-if __name__ == "__main__":
-    main()
+def main():
+    run_id=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    summaries=[]; detail=[]; raw_paths=[]
+    session=requests.Session()
+    for item in TARGETS:
+        symbol=item["symbol"]
+        # Three independent access paths: yfinance download default, Ticker.history with repair,
+        # and Yahoo's chart endpoint directly. Preserve each response independently.
+        methods=[]
+        try:
+            d=normalize_frame(yf.download(symbol,start=item["start"],end=item["end"],auto_adjust=False,
+                actions=True,repair=False,keepna=True,progress=False,threads=False,timeout=30))
+            methods.append(("download_repair_false",d,""))
+        except Exception as e: methods.append(("download_repair_false",pd.DataFrame(),repr(e)))
+        try:
+            h=normalize_frame(yf.Ticker(symbol).history(start=item["start"],end=item["end"],
+                auto_adjust=False,actions=True,repair=True,keepna=True,timeout=30))
+            methods.append(("history_repair_true",h,""))
+        except Exception as e: methods.append(("history_repair_true",pd.DataFrame(),repr(e)))
+        try:
+            p1=int(pd.Timestamp(item["start"],tz="UTC").timestamp())
+            p2=int(pd.Timestamp(item["end"],tz="UTC").timestamp())
+            url=f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+            resp=session.get(url,params={"period1":p1,"period2":p2,"interval":"1d","events":"div,splits,capitalGains"},timeout=30)
+            api_error=""
+            try: payload=resp.json()
+            except Exception: payload={}
+            chart=(payload.get("chart") or {})
+            result=(chart.get("result") or [])
+            if not result:
+                api_error=json.dumps(chart.get("error") or {"http_status":resp.status_code,"body":resp.text[:300]},ensure_ascii=False)
+                direct=pd.DataFrame()
+            else:
+                r=result[0]; ts=r.get("timestamp") or []
+                q=r.get("indicators",{}).get("quote",[{}])[0]
+                adj=(r.get("indicators",{}).get("adjclose") or [{}])[0].get("adjclose",[])
+                direct=pd.DataFrame({"date":pd.to_datetime(ts,unit="s",utc=True).tz_localize(None).normalize()})
+                for key,src in [("Open","open"),("High","high"),("Low","low"),("Close","close"),("Volume","volume")]:
+                    vals=q.get(src,[])
+                    direct[key]=vals if len(vals)==len(direct) else np.nan
+                direct["Adj Close"]=adj if len(adj)==len(direct) else np.nan
+                ev=r.get("events",{})
+                for field,event_key in [("Dividends","dividends"),("Stock Splits","splits"),("Capital Gains","capitalGains")]:
+                    direct[field]=0.0
+                    for tskey,evrow in (ev.get(event_key) or {}).items():
+                        dte=pd.to_datetime(int(tskey),unit="s",utc=True).tz_localize(None).normalize()
+                        mask=direct["date"].eq(dte)
+                        if field=="Dividends": direct.loc[mask,field]=evrow.get("amount",0)
+                        elif field=="Stock Splits":
+                            direct.loc[mask,field]=evrow.get("numerator",0)/max(evrow.get("denominator",1),1)
+                            if evrow.get("numerator",0)==0: direct.loc[mask,field]=0
+                        else: direct.loc[mask,field]=evrow.get("amount",0)
+                api_error=f"HTTP {resp.status_code}; chart_error={chart.get('error')}"
+            methods.append(("direct_chart_api",normalize_frame(direct) if not direct.empty else direct,api_error))
+        except Exception as e: methods.append(("direct_chart_api",pd.DataFrame(),repr(e)))
+        for method,df,err in methods:
+            raw_path=OUT/f"raw_{item['ticker']}_{method}.csv"
+            if not df.empty:
+                df["ticker"]=item["ticker"]; df["provider_symbol"]=symbol
+                df["method"]=method; df["diagnostic_run_id"]=run_id
+                save_frame(df,raw_path); raw_paths.append(str(raw_path))
+            date_map={}
+            if not df.empty and "date" in df.columns:
+                date_map={d.strftime("%Y-%m-%d"):r for d,(_,r) in zip(df["date"],df.iterrows()) if pd.notna(d)}
+            for target_date in item["dates"]:
+                rows=df[df["date"].dt.strftime("%Y-%m-%d").eq(target_date)] if not df.empty and "date" in df.columns else pd.DataFrame()
+                if rows.empty:
+                    detail.append({"ticker":item["ticker"],"symbol":symbol,"date":target_date,"method":method,
+                        "result":"NO_ROW","missing_fields":"NO_ROW_RETURNED","open":None,"high":None,"low":None,
+                        "close":None,"adj_close":None,"volume":None,"error":err})
+                else:
+                    r=rows.iloc[-1]; missing=[f for f in PRICE_FIELDS if pd.isna(r.get(f))]
+                    detail.append({"ticker":item["ticker"],"symbol":symbol,"date":target_date,"method":method,
+                        "result":"MISSING_FIELDS" if missing else "DATA_PRESENT","missing_fields":";".join(missing),
+                        "open":r.get("Open"),"high":r.get("High"),"low":r.get("Low"),"close":r.get("Close"),
+                        "adj_close":r.get("Adj Close"),"volume":r.get("Volume"),"error":err})
+            summaries.append({"ticker":item["ticker"],"symbol":symbol,"method":method,"rows":len(df),
+                "start_returned":str(df["date"].min().date()) if not df.empty else "",
+                "end_returned":str(df["date"].max().date()) if not df.empty else "",
+                "missing_price_cells":int(df[PRICE_FIELDS].isna().sum().sum()) if not df.empty else None,
+                "http_or_exception":err})
+            time.sleep(0.3)
+    pd.DataFrame(detail).to_csv(OUT/"ETF_Missing_Data_Detail_v3.csv",index=False,encoding="utf-8-sig")
+    pd.DataFrame(summaries).to_csv(OUT/"ETF_Missing_Data_Method_Comparison_v3.csv",index=False,encoding="utf-8-sig")
+    manifest={"run_id":run_id,"source":"Yahoo Finance; yfinance plus direct chart endpoint",
+        "targets":TARGETS,"raw_files":raw_paths,"detail_report":str(OUT/"ETF_Missing_Data_Detail_v3.csv"),
+        "comparison_report":str(OUT/"ETF_Missing_Data_Method_Comparison_v3.csv"),
+        "synthetic_data_allowed":False,"master_modified":False,
+        "note":"No prices are inferred or filled. Compare methods to distinguish provider-side missing data from client-library behavior."}
+    (OUT/"diagnostic_manifest_v3.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding="utf-8")
+    print(json.dumps(manifest,ensure_ascii=False,indent=2))
+    print("\nMETHOD COMPARISON\n",pd.DataFrame(summaries).to_string(index=False))
+    print("\nTARGET DATES\n",pd.DataFrame(detail).to_string(index=False))
+
+if __name__=="__main__": main()
