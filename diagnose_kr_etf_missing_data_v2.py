@@ -37,7 +37,12 @@ def normalize_frame(df):
     df=df.reset_index()
     date_col=next((c for c in ["Date","Datetime","date","index"] if c in df.columns), df.columns[0])
     df=df.rename(columns={date_col:"date"})
-    df["date"]=pd.to_datetime(df["date"],errors="coerce",utc=True).dt.tz_localize(None).dt.normalize()
+    # Preserve the exchange-local calendar date. Converting a Seoul-midnight index to UTC
+    # before dropping the timezone shifts the date to the previous day.
+    parsed = pd.to_datetime(df["date"], errors="coerce")
+    if getattr(parsed.dt, "tz", None) is not None:
+        parsed = parsed.dt.tz_localize(None)
+    df["date"] = parsed.dt.normalize()
     for f in FIELDS:
         if f not in df.columns: df[f]=np.nan
         df[f]=pd.to_numeric(df[f],errors="coerce")
@@ -82,7 +87,11 @@ def main():
                 r=result[0]; ts=r.get("timestamp") or []
                 q=r.get("indicators",{}).get("quote",[{}])[0]
                 adj=(r.get("indicators",{}).get("adjclose") or [{}])[0].get("adjclose",[])
-                direct=pd.DataFrame({"date":pd.to_datetime(ts,unit="s",utc=True).tz_localize(None).normalize()})
+                # Yahoo chart timestamps represent exchange-local session timestamps. Use the
+                # exchange timezone supplied by Yahoo metadata, rather than forcing UTC.
+                exchange_tz = ((r.get("meta") or {}).get("exchangeTimezoneName") or "Asia/Seoul")
+                direct_dates = pd.to_datetime(ts, unit="s", utc=True).tz_convert(exchange_tz).tz_localize(None).normalize()
+                direct=pd.DataFrame({"date":direct_dates})
                 for key,src in [("Open","open"),("High","high"),("Low","low"),("Close","close"),("Volume","volume")]:
                     vals=q.get(src,[])
                     direct[key]=vals if len(vals)==len(direct) else np.nan
@@ -91,7 +100,7 @@ def main():
                 for field,event_key in [("Dividends","dividends"),("Stock Splits","splits"),("Capital Gains","capitalGains")]:
                     direct[field]=0.0
                     for tskey,evrow in (ev.get(event_key) or {}).items():
-                        dte=pd.to_datetime(int(tskey),unit="s",utc=True).tz_localize(None).normalize()
+                        dte=pd.to_datetime(int(tskey),unit="s",utc=True).tz_convert(exchange_tz).tz_localize(None).normalize()
                         mask=direct["date"].eq(dte)
                         if field=="Dividends": direct.loc[mask,field]=evrow.get("amount",0)
                         elif field=="Stock Splits":
