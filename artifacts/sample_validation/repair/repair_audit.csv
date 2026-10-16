@@ -1,0 +1,2 @@
+market,ticker,date,field,original_value,replacement_value,source_name,source_uri,source_retrieved_at,source_hash,repair_reason,validation_result,applied
+KR,069500,2024-01-03,adj_close,,202,SYNTHETIC_TEST_SOURCE,synthetic://sample/069500/2024-01-03,2026-10-16T00:00:00Z,SYNTHETIC_HASH_NOT_EVIDENCE,MISSING_ORIGINAL_CELL,VALUE_RULES_PASSED,True

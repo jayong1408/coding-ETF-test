@@ -1,0 +1,11 @@
+{
+  "generated_at_utc": "2026-10-16T02:23:11.719491+00:00",
+  "original_rows": 9,
+  "candidate_rows": 9,
+  "applied_cell_repairs": 1,
+  "unresolved_cases": 0,
+  "synthetic_or_interpolated_values_used": false,
+  "original_overwritten": false,
+  "repair_policy": "Only missing cells/rows from fully identified VERIFIED sources; existing valid values are preserved.",
+  "candidate_content_sha256": "01f3a811d10af3a301c246d0e4e5e502c86c9cee5919b87cf6d1cf1cecedf696"
+}

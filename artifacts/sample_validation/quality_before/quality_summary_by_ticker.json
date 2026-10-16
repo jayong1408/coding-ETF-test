@@ -1,0 +1,30 @@
+[
+  {
+    "market":"KR",
+    "ticker":"069500",
+    "first_date":"2024-01-02T00:00:00.000",
+    "last_date":"2024-01-04T00:00:00.000",
+    "rows":3,
+    "missing_cells":1,
+    "confirmed_missing_dates":0,
+    "duplicate_rows":0,
+    "blocked_anomalies":0,
+    "conditional_anomalies":0,
+    "calendar_status":"VERIFIED",
+    "quality_status":"BLOCKED"
+  },
+  {
+    "market":"KR",
+    "ticker":"360750",
+    "first_date":"2022-12-22T00:00:00.000",
+    "last_date":"2022-12-29T00:00:00.000",
+    "rows":6,
+    "missing_cells":0,
+    "confirmed_missing_dates":0,
+    "duplicate_rows":0,
+    "blocked_anomalies":0,
+    "conditional_anomalies":0,
+    "calendar_status":"VERIFIED",
+    "quality_status":"PASS"
+  }
+]
