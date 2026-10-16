@@ -5,7 +5,7 @@
 Real provider observations only. No synthetic fallback. V1 files are never deleted.
 """
 from __future__ import annotations
-import hashlib, json, logging, re, time
+import hashlib, json, logging, re, subprocess, time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -71,6 +71,41 @@ def normalize_ticker(v: Any, market: str) -> str:
     if market == "KR" and s.isdigit():
         s = s.zfill(6)
     return s
+
+
+def normalize_provider_dates(values: pd.Series, market: str) -> tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
+    """Preserve raw timestamps and normalize through the exchange timezone.
+
+    The previous UTC-first conversion could move a Seoul-midnight session to
+    the prior calendar day.  Aware timestamps are now converted to the exchange
+    timezone before the timezone is removed.
+    """
+    exchange_timezone = "Asia/Seoul" if market == "KR" else "America/New_York"
+    dates, raw_values, reasons, timezones = [], [], [], []
+    for value in values:
+        raw_values.append("" if pd.isna(value) else str(value))
+        try:
+            stamp = pd.Timestamp(value)
+        except (TypeError, ValueError, OverflowError):
+            stamp = pd.NaT
+        if pd.isna(stamp):
+            dates.append(pd.NaT); reasons.append("INVALID_OR_MISSING_DATE")
+        elif stamp.tzinfo is not None:
+            dates.append(stamp.tz_convert(exchange_timezone).tz_localize(None).normalize())
+            reasons.append("TZ_AWARE_CONVERTED_TO_EXCHANGE_LOCAL")
+        else:
+            dates.append(stamp.normalize())
+            reasons.append("DATE_ONLY_UNCHANGED" if stamp == stamp.normalize() else "NAIVE_TIMESTAMP_ASSUMED_EXCHANGE_LOCAL")
+        timezones.append(exchange_timezone)
+    return pd.Series(dates, index=values.index), pd.Series(raw_values, index=values.index), pd.Series(reasons, index=values.index), pd.Series(timezones, index=values.index)
+
+
+def code_version() -> str:
+    try:
+        value = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False).stdout.strip()
+        return value or "UNKNOWN"
+    except (OSError, subprocess.SubprocessError):
+        return "UNKNOWN"
 
 
 def load_universe(path: Path, market: str) -> pd.DataFrame:
@@ -143,7 +178,8 @@ def download_one(item: dict[str, Any]) -> tuple[pd.DataFrame, pd.DataFrame, dict
                 if "date" not in df:
                     last_error = f"MISSING_DATE:{symbol}"
                     break
-                df["date"] = pd.to_datetime(df["date"], errors="coerce", utc=True).dt.tz_localize(None).dt.normalize()
+                normalized_dates = normalize_provider_dates(df["date"], item["market"])
+                df["date"], df["date_raw"], df["date_normalization_reason"], df["exchange_timezone"] = normalized_dates
                 df = df.dropna(subset=["date"]).copy()
                 if df.empty:
                     last_error = f"NO_VALID_DATES:{symbol}"
@@ -168,7 +204,8 @@ def download_one(item: dict[str, Any]) -> tuple[pd.DataFrame, pd.DataFrame, dict
                 df = df.sort_values("date").drop_duplicates("date", keep="last")
                 price_cols = [
                     "date", "market", "instrument_id", "ticker", "name", "provider_symbol",
-                    "currency", "open", "high", "low", "close", "adj_close", "volume",
+                    "currency", "date_raw", "date_normalization_reason", "exchange_timezone",
+                    "open", "high", "low", "close", "adj_close", "volume",
                     "turnover_estimated", "source", "retrieved_at_utc", "run_id", "data_status",
                 ]
                 action_cols = [
@@ -180,7 +217,8 @@ def download_one(item: dict[str, Any]) -> tuple[pd.DataFrame, pd.DataFrame, dict
                 actions = actions[actions[["dividends", "stock_splits", "capital_gains"]].fillna(0).ne(0).any(axis=1)].copy()
                 return prices, actions, {
                     "market": item["market"], "ticker": item["ticker"], "name": item.get("name", ""),
-                    "provider_symbol": symbol, "status": "SUCCESS", "rows": len(prices),
+                    "provider_symbol": symbol, "status": "SUCCESS", "download_status": "SUCCESS",
+                    "quality_status": "PENDING", "rows": len(prices),
                     "first_date": prices["date"].min().date().isoformat(),
                     "last_date": prices["date"].max().date().isoformat(), "error": "",
                 }
@@ -192,7 +230,8 @@ def download_one(item: dict[str, Any]) -> tuple[pd.DataFrame, pd.DataFrame, dict
         time.sleep(0.2)
     return pd.DataFrame(), pd.DataFrame(), {
         "market": item["market"], "ticker": item["ticker"], "name": item.get("name", ""),
-        "provider_symbol": "", "status": "FAILED_NO_DATA", "rows": 0,
+        "provider_symbol": "", "status": "FAILED_NO_DATA", "download_status": "FAILED_NO_DATA",
+        "quality_status": "NOT_EVALUATED", "rows": 0,
         "first_date": "", "last_date": "", "error": last_error,
     }
 
@@ -209,7 +248,8 @@ def load_completed() -> set[str]:
         try:
             df = pd.read_csv(path, dtype=str)
             if {"market", "ticker", "status"}.issubset(df.columns):
-                ok = df[df["status"] == "SUCCESS"]
+                status_col = "download_status" if "download_status" in df.columns else "status"
+                ok = df[df[status_col] == "SUCCESS"]
                 done.update(ok["market"] + ":" + ok["ticker"])
         except Exception:
             logging.exception("Could not read checkpoint status %s", path)
@@ -338,6 +378,7 @@ def main() -> None:
     prices = pd.concat([pd.read_parquet(p) for p in price_files], ignore_index=True)
     prices["date"] = pd.to_datetime(prices["date"], errors="coerce")
     prices = prices.dropna(subset=["date", "market", "ticker"])
+    duplicate_rows = prices[prices.duplicated(["market", "ticker", "date"], keep=False)].copy()
     prices = prices.sort_values(["market", "ticker", "date"]).drop_duplicates(["market", "ticker", "date"], keep="last").reset_index(drop=True)
     prices["quality_flag"] = ""
     prices.loc[prices["close"].isna() | (prices["close"] <= 0), "quality_flag"] += "INVALID_CLOSE;"
@@ -351,13 +392,28 @@ def main() -> None:
         missing_volume=("volume", lambda s: int(s.isna().sum())),
         flagged_rows=("quality_flag", lambda s: int((s != "").sum())),
     )
+    duplicate_counts = (duplicate_rows.groupby(["market", "ticker"]).size().rename("duplicate_rows").reset_index()
+                        if not duplicate_rows.empty else pd.DataFrame(columns=["market", "ticker", "duplicate_rows"]))
+    quality = quality.merge(duplicate_counts, on=["market", "ticker"], how="left")
+    quality["duplicate_rows"] = quality["duplicate_rows"].fillna(0).astype(int)
+    blocking = quality[["missing_close", "missing_adj_close", "missing_open", "missing_volume", "flagged_rows", "duplicate_rows"]].sum(axis=1)
+    quality["quality_status"] = np.where(blocking.gt(0), "BLOCKED", "CONDITIONAL")
+    quality["quality_status_reason"] = np.where(blocking.gt(0), "DATA_QUALITY_ERRORS", "TRADING_CALENDAR_NOT_VERIFIED")
     status_files = sorted(CHECKPOINT.glob("status_*.csv"))
     statuses = pd.concat([pd.read_csv(p, dtype={"market": str, "ticker": str}) for p in status_files], ignore_index=True) if status_files else pd.DataFrame()
     if not statuses.empty:
         statuses = statuses.drop_duplicates(["market", "ticker"], keep="last")
+        statuses = statuses.drop(columns=["quality_status"], errors="ignore").merge(
+            quality[["market", "ticker", "quality_status"]], on=["market", "ticker"], how="left"
+        )
+        statuses["quality_status"] = statuses["quality_status"].fillna("NOT_EVALUATED")
         statuses.to_csv(STATUS_OUT, index=False, encoding="utf-8-sig")
         statuses[statuses["status"] != "SUCCESS"].to_csv(FAIL_OUT, index=False, encoding="utf-8-sig")
     quality.to_csv(QUALITY_OUT, index=False, encoding="utf-8-sig")
+    (OUT / "ETF_Data_Quality_Report_v2.json").write_text(
+        json.dumps(quality.to_dict(orient="records"), ensure_ascii=False, indent=2, default=str), encoding="utf-8"
+    )
+    duplicate_rows.to_csv(OUT / "duplicate_keys_v2.csv", index=False, encoding="utf-8-sig")
 
     # Publish to new V2 filenames only. Never touch V1 files.
     atomic_parquet(prices, PRICE_OUT)
@@ -378,6 +434,8 @@ def main() -> None:
         "corporate_action_rows": int(len(actions)),
         "failed_instruments": int((statuses["status"] != "SUCCESS").sum()) if not statuses.empty else None,
         "quality_flagged_rows": int((prices["quality_flag"] != "").sum()),
+        "duplicate_rows_detected_before_deduplication": int(len(duplicate_rows)),
+        "code_version": code_version(),
         "price_output": str(PRICE_OUT), "actions_output": str(ACTIONS_OUT),
         "excel_output": str(EXCEL_OUT) if EXPORT_EXCEL else None,
     })

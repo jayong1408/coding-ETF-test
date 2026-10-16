@@ -3,30 +3,31 @@ name: Validate ETF rebuild V2
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "rebuild_etf_master_v2.py"
-      - "ETF_Daily_Master_V2_Colab.ipynb"
-      - "diagnose_kr_etf_missing_data_v2.py"
-      - "Diagnose_KR_ETF_Missing_Data_V2.ipynb"
-      - ".github/workflows/validate-etf-rebuild-v2.yml"
   push:
     branches: ["rebuild/etf-master-v2"]
-    paths:
-      - "rebuild_etf_master_v2.py"
-      - "ETF_Daily_Master_V2_Colab.ipynb"
-      - ".github/workflows/validate-etf-rebuild-v2.yml"
 
 jobs:
-  syntax:
+  quality-and-repair-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install -r requirements-etf-data-pipeline.txt
       - name: Compile Python script
         run: python -m py_compile rebuild_etf_master_v2.py
       - name: Compile diagnostic script
         run: python -m py_compile diagnose_kr_etf_missing_data_v2.py
       - name: Validate notebook JSON
         run: python -c "import json; paths=['ETF_Daily_Master_V2_Colab.ipynb','Diagnose_KR_ETF_Missing_Data_V2.ipynb']; [json.load(open(p, encoding='utf-8')) for p in paths]; print('Notebook JSON valid')"
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Run synthetic end-to-end sample
+        run: python -m scripts.generate_sample_artifacts --output-dir ci_sample_output
+      - name: Upload synthetic evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: etf-pipeline-synthetic-evidence
+          path: ci_sample_output

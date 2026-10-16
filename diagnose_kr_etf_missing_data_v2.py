@@ -39,10 +39,15 @@ def normalize_frame(df):
     df=df.rename(columns={date_col:"date"})
     # Preserve the exchange-local calendar date. Converting a Seoul-midnight index to UTC
     # before dropping the timezone shifts the date to the previous day.
+    df["date_raw"] = df["date"].astype("string")
     parsed = pd.to_datetime(df["date"], errors="coerce")
     if getattr(parsed.dt, "tz", None) is not None:
-        parsed = parsed.dt.tz_localize(None)
+        parsed = parsed.dt.tz_convert("Asia/Seoul").dt.tz_localize(None)
+        df["date_normalization_reason"] = "TZ_AWARE_CONVERTED_TO_EXCHANGE_LOCAL"
+    else:
+        df["date_normalization_reason"] = "NAIVE_DATE_ASSUMED_EXCHANGE_LOCAL"
     df["date"] = parsed.dt.normalize()
+    df["exchange_timezone"] = "Asia/Seoul"
     for f in FIELDS:
         if f not in df.columns: df[f]=np.nan
         df[f]=pd.to_numeric(df[f],errors="coerce")
@@ -143,6 +148,8 @@ def main():
         "targets":TARGETS,"raw_files":raw_paths,"detail_report":str(OUT/"ETF_Missing_Data_Detail_v3.csv"),
         "comparison_report":str(OUT/"ETF_Missing_Data_Method_Comparison_v3.csv"),
         "synthetic_data_allowed":False,"master_modified":False,
+        "date_rule":"Preserve raw date; convert aware timestamps to Asia/Seoul before dropping timezone; retain normalization reason.",
+        "calendar_rule":"NO_ROW is a provider observation, not a confirmed market-data gap until an independently sourced verified KRX trading calendar is supplied.",
         "note":"No prices are inferred or filled. Compare methods to distinguish provider-side missing data from client-library behavior."}
     (OUT/"diagnostic_manifest_v3.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding="utf-8")
     print(json.dumps(manifest,ensure_ascii=False,indent=2))
