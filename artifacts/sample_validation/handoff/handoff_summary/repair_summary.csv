@@ -1,0 +1,3 @@
+market,ticker,before_rows,before_missing_cells,before_confirmed_missing_dates,before_duplicate_rows,before_blocked_anomalies,before_conditional_anomalies,before_quality_status,after_rows,after_missing_cells,after_confirmed_missing_dates,after_duplicate_rows,after_blocked_anomalies,after_conditional_anomalies,after_quality_status,change_missing_cells,change_confirmed_missing_dates,change_duplicate_rows,change_blocked_anomalies,change_conditional_anomalies,final_status
+KR,69500,3,1,0,0,0,0,BLOCKED,3,0,0,0,0,0,PASS,-1,0,0,0,0,PASS
+KR,360750,6,0,0,0,0,0,PASS,6,0,0,0,0,0,PASS,0,0,0,0,0,PASS

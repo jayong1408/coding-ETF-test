@@ -1,0 +1,21 @@
+column_name,data_type,meaning,missing_allowed
+market,large_string,KR or US market,NO
+ticker,large_string,instrument code,NO
+date,timestamp[us],exchange-local trading date,NO
+name,large_string,source or audit metadata,POLICY_DEPENDENT
+open,int64,raw opening price,NO
+high,int64,raw high price,NO
+low,int64,raw low price,NO
+close,int64,raw closing price,NO
+adj_close,double,provider adjusted close,NO
+volume,int64,reported volume,NO
+data_status,large_string,source or audit metadata,POLICY_DEPENDENT
+date_raw,large_string,source or audit metadata,POLICY_DEPENDENT
+date_normalization_reason,large_string,source or audit metadata,POLICY_DEPENDENT
+exchange_timezone,large_string,source or audit metadata,POLICY_DEPENDENT
+data_origin,large_string,source or audit metadata,POLICY_DEPENDENT
+trading_value,double,reported or explicitly labelled estimated traded value,POLICY_DEPENDENT
+dividends,double,source or audit metadata,POLICY_DEPENDENT
+stock_splits,double,source or audit metadata,POLICY_DEPENDENT
+capital_gains,double,source or audit metadata,POLICY_DEPENDENT
+instrument_id,large_string,source or audit metadata,POLICY_DEPENDENT

@@ -1,0 +1,2 @@
+date,market,ticker,name,open,high,low,close,adj_close,volume,data_status,verification_status,source_name,source_uri,source_retrieved_at,source_hash,calendar_verified
+2024-01-03,KR,069500,SYNTHETIC_069500,201,203,199,202,202,1000,SYNTHETIC_TEST_DATA,VERIFIED,SYNTHETIC_TEST_SOURCE,synthetic://sample/069500/2024-01-03,2026-10-16T00:00:00Z,SYNTHETIC_HASH_NOT_EVIDENCE,True

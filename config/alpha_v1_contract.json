@@ -1,0 +1,7 @@
+{
+  "contract_status": "INFERRED_NOT_CONFIRMED",
+  "required_columns": ["date", "market", "ticker", "adj_close", "volume"],
+  "unique_key": ["date", "market", "ticker"],
+  "allowed_quality_statuses": ["PASS"],
+  "note": "This repository does not contain the Alpha V1 Feature Engine/backtest contract. These fields are inferred from the legacy ETF Daily Master and must not be treated as production confirmation."
+}

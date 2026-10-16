@@ -1,0 +1,282 @@
+{
+  "generated_at_utc": "2026-10-16T02:23:11.991228+00:00",
+  "package_kind": "FREE_ACCOUNT_HANDOFF",
+  "code_version": "1c4d4effc3ab599d1679677abdfc93f62f9c38ba",
+  "sample_data": true,
+  "max_file_bytes": 1000000,
+  "source_master": {
+    "path": "D:\\LAB\\01.SOP\\coding-ETF-test\\artifacts\\sample_validation\\repair\\SYNTHETIC_repaired_candidate.parquet",
+    "size_bytes": 11974,
+    "rows": 9,
+    "sha256": "4a4f589cb3d5458736fa050250cd8427e5216b28d2b4f62b631b7dc3a2ea46cb"
+  },
+  "files": [
+    {
+      "path": "handoff_details/anomaly_dates.csv",
+      "size_bytes": 54,
+      "sha256": "b5f50da8a8ff26118b5aebf799d13fa4e7dce888553bc5e181bd0aa8ca49a038",
+      "created_at_utc": "2026-10-16T02:23:12.086746+00:00",
+      "rows": 0,
+      "columns": [
+        "market",
+        "ticker",
+        "date",
+        "field",
+        "issue",
+        "severity",
+        "value",
+        "detail"
+      ],
+      "period_start": null,
+      "period_end": null
+    },
+    {
+      "path": "handoff_details/missing_dates.csv",
+      "size_bytes": 76,
+      "sha256": "734cf29dab31684460e655a979cfdea1d61d9e3d328c3a09cfb4802f22dc4f21",
+      "created_at_utc": "2026-10-16T02:23:12.086746+00:00",
+      "rows": 0,
+      "columns": [
+        "market",
+        "ticker",
+        "date",
+        "field",
+        "category",
+        "status",
+        "calendar_source",
+        "calendar_verified"
+      ],
+      "period_start": null,
+      "period_end": null
+    },
+    {
+      "path": "handoff_details/repair_audit.csv",
+      "size_bytes": 345,
+      "sha256": "0ea6af8fde0973f85c3ff6469876f132e38de90adb10078675cef3995d954b2d",
+      "created_at_utc": "2026-10-16T02:23:12.102376+00:00",
+      "rows": 1,
+      "columns": [
+        "market",
+        "ticker",
+        "date",
+        "field",
+        "original_value",
+        "replacement_value",
+        "source_name",
+        "source_uri",
+        "source_retrieved_at",
+        "source_hash",
+        "repair_reason",
+        "validation_result",
+        "applied"
+      ],
+      "period_start": "2024-01-03",
+      "period_end": "2024-01-03"
+    },
+    {
+      "path": "handoff_details/source_comparison.csv",
+      "size_bytes": 796,
+      "sha256": "864c29dc0215f2e707e2019ce611b03d51d8c5586544ead01c963aaae68fbb50",
+      "created_at_utc": "2026-10-16T02:23:12.107838+00:00",
+      "rows": 6,
+      "columns": [
+        "market",
+        "ticker",
+        "date",
+        "field",
+        "original_value",
+        "source_value",
+        "source_name",
+        "source_uri",
+        "verification_status",
+        "comparison_status"
+      ],
+      "period_start": "2024-01-03",
+      "period_end": "2024-01-03"
+    },
+    {
+      "path": "handoff_details/unresolved_cases.csv",
+      "size_bytes": 46,
+      "sha256": "963410f239bef2e6936782df266f0f84bf6ffbf1702a3d50206856952e717372",
+      "created_at_utc": "2026-10-16T02:23:12.114962+00:00",
+      "rows": 0,
+      "columns": [
+        "market",
+        "ticker",
+        "date",
+        "field",
+        "reason",
+        "source_count"
+      ],
+      "period_start": null,
+      "period_end": null
+    },
+    {
+      "path": "HANDOFF_README_KR.md",
+      "size_bytes": 425,
+      "sha256": "b587ff8c91d26b9f4744cec6f572e1c5b2b011248ad8de1af48b09fe9530590b",
+      "created_at_utc": "2026-10-16T02:23:12.122833+00:00"
+    },
+    {
+      "path": "handoff_summary/decision_brief.md",
+      "size_bytes": 662,
+      "sha256": "58fd05fa2740daa6626bca6786662032f0ac3b870273a5ff78b7609e0fa70a29",
+      "created_at_utc": "2026-10-16T02:23:12.124840+00:00"
+    },
+    {
+      "path": "handoff_summary/manifest.json",
+      "size_bytes": 5029,
+      "sha256": "55fa38da2ed3ab459bdaf87f54acbc078f59e1ff6ee6e0c750406b20205c9467",
+      "created_at_utc": "2026-10-16T02:23:12.126850+00:00"
+    },
+    {
+      "path": "handoff_summary/missing_summary_by_year.csv",
+      "size_bytes": 58,
+      "sha256": "7de8cb4791bae99ef8a86253bed1018fa4fca28c822b788aeb602c66266e10e0",
+      "created_at_utc": "2026-10-16T02:23:12.126850+00:00",
+      "rows": 0,
+      "columns": [
+        "market",
+        "ticker",
+        "year",
+        "missing_cell_count",
+        "missing_date_count"
+      ]
+    },
+    {
+      "path": "handoff_summary/quality_summary_by_ticker.csv",
+      "size_bytes": 283,
+      "sha256": "74ac16441f4effbe276faeb387110052ac4846fee8420c2afbcf455196dddfc5",
+      "created_at_utc": "2026-10-16T02:23:12.130935+00:00",
+      "rows": 2,
+      "columns": [
+        "market",
+        "ticker",
+        "first_date",
+        "last_date",
+        "rows",
+        "missing_cells",
+        "confirmed_missing_dates",
+        "duplicate_rows",
+        "blocked_anomalies",
+        "conditional_anomalies",
+        "calendar_status",
+        "quality_status"
+      ]
+    },
+    {
+      "path": "handoff_summary/README_KR.md",
+      "size_bytes": 457,
+      "sha256": "9046853fb298e2001f57ec743eba594d693ddfac3a2b37a66ea0869089a1c5d7",
+      "created_at_utc": "2026-10-16T02:23:12.130935+00:00"
+    },
+    {
+      "path": "handoff_summary/repair_summary.csv",
+      "size_bytes": 596,
+      "sha256": "d1fa579c4344de28856cdd854d357f36eaef465ac46a5682473f2f38dba9a782",
+      "created_at_utc": "2026-10-16T02:23:12.130935+00:00",
+      "rows": 2,
+      "columns": [
+        "market",
+        "ticker",
+        "before_rows",
+        "before_missing_cells",
+        "before_confirmed_missing_dates",
+        "before_duplicate_rows",
+        "before_blocked_anomalies",
+        "before_conditional_anomalies",
+        "before_quality_status",
+        "after_rows",
+        "after_missing_cells",
+        "after_confirmed_missing_dates",
+        "after_duplicate_rows",
+        "after_blocked_anomalies",
+        "after_conditional_anomalies",
+        "after_quality_status",
+        "change_missing_cells",
+        "change_confirmed_missing_dates",
+        "change_duplicate_rows",
+        "change_blocked_anomalies",
+        "change_conditional_anomalies",
+        "final_status"
+      ]
+    },
+    {
+      "path": "handoff_summary/schema.csv",
+      "size_bytes": 1150,
+      "sha256": "ab220d5023608c5d86ba7de7e7a15288bd719f63c807cab63f812162e5df5573",
+      "created_at_utc": "2026-10-16T02:23:12.130935+00:00",
+      "rows": 20,
+      "columns": [
+        "column_name",
+        "data_type",
+        "meaning",
+        "missing_allowed"
+      ]
+    },
+    {
+      "path": "handoff_summary/validation_results.json",
+      "size_bytes": 1048,
+      "sha256": "4c7856393884a606ac23739e9d7944f06b3315e3ddff9fb467022e42c4847638",
+      "created_at_utc": "2026-10-16T02:23:12.130935+00:00"
+    }
+  ],
+  "validation": {
+    "required_summary_files_present": true,
+    "required_summary_files": {
+      "README_KR.md": true,
+      "manifest.json": true,
+      "schema.csv": true,
+      "quality_summary_by_ticker.csv": true,
+      "missing_summary_by_year.csv": true,
+      "repair_summary.csv": true,
+      "decision_brief.md": true,
+      "validation_results.json": true
+    },
+    "detail_file_size_limit_passed": true,
+    "detail_file_size_checks": {
+      "handoff_details/anomaly_dates.csv": true,
+      "handoff_details/missing_dates.csv": true,
+      "handoff_details/repair_audit.csv": true,
+      "handoff_details/source_comparison.csv": true,
+      "handoff_details/unresolved_cases.csv": true
+    },
+    "split_row_counts_match": true,
+    "split_validation": {
+      "missing_dates.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      },
+      "anomaly_dates.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      },
+      "repair_audit.csv": {
+        "source_rows": 1,
+        "part_rows": 1,
+        "row_count_match": true
+      },
+      "source_comparison.csv": {
+        "source_rows": 6,
+        "part_rows": 6,
+        "row_count_match": true
+      },
+      "unresolved_cases.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      }
+    },
+    "missing_list_has_no_duplicates": true,
+    "unresolved_problems_explicit": true,
+    "master_relationship": {
+      "path": "D:\\LAB\\01.SOP\\coding-ETF-test\\artifacts\\sample_validation\\repair\\SYNTHETIC_repaired_candidate.parquet",
+      "size_bytes": 11974,
+      "rows": 9,
+      "sha256": "4a4f589cb3d5458736fa050250cd8427e5216b28d2b4f62b631b7dc3a2ea46cb"
+    }
+  },
+  "source_to_summary_relationship": "Summary/detail reports are derived diagnostics; the original master is identified by path, row count, size, and SHA-256 and is not copied."
+}

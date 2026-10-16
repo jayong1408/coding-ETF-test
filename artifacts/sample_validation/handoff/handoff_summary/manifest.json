@@ -1,0 +1,159 @@
+{
+  "generated_at_utc": "2026-10-16T02:23:11.991228+00:00",
+  "files": [
+    {
+      "path": "handoff_summary/decision_brief.md",
+      "size_bytes": 662,
+      "sha256": "58fd05fa2740daa6626bca6786662032f0ac3b870273a5ff78b7609e0fa70a29",
+      "created_at_utc": "2026-10-16T02:23:11.957458+00:00"
+    },
+    {
+      "path": "handoff_summary/missing_summary_by_year.csv",
+      "size_bytes": 58,
+      "sha256": "7de8cb4791bae99ef8a86253bed1018fa4fca28c822b788aeb602c66266e10e0",
+      "created_at_utc": "2026-10-16T02:23:11.957458+00:00",
+      "rows": 0,
+      "columns": [
+        "market",
+        "ticker",
+        "year",
+        "missing_cell_count",
+        "missing_date_count"
+      ]
+    },
+    {
+      "path": "handoff_summary/quality_summary_by_ticker.csv",
+      "size_bytes": 283,
+      "sha256": "74ac16441f4effbe276faeb387110052ac4846fee8420c2afbcf455196dddfc5",
+      "created_at_utc": "2026-10-16T02:23:11.973432+00:00",
+      "rows": 2,
+      "columns": [
+        "market",
+        "ticker",
+        "first_date",
+        "last_date",
+        "rows",
+        "missing_cells",
+        "confirmed_missing_dates",
+        "duplicate_rows",
+        "blocked_anomalies",
+        "conditional_anomalies",
+        "calendar_status",
+        "quality_status"
+      ]
+    },
+    {
+      "path": "handoff_summary/README_KR.md",
+      "size_bytes": 457,
+      "sha256": "9046853fb298e2001f57ec743eba594d693ddfac3a2b37a66ea0869089a1c5d7",
+      "created_at_utc": "2026-10-16T02:23:11.979450+00:00"
+    },
+    {
+      "path": "handoff_summary/repair_summary.csv",
+      "size_bytes": 596,
+      "sha256": "d1fa579c4344de28856cdd854d357f36eaef465ac46a5682473f2f38dba9a782",
+      "created_at_utc": "2026-10-16T02:23:11.981457+00:00",
+      "rows": 2,
+      "columns": [
+        "market",
+        "ticker",
+        "before_rows",
+        "before_missing_cells",
+        "before_confirmed_missing_dates",
+        "before_duplicate_rows",
+        "before_blocked_anomalies",
+        "before_conditional_anomalies",
+        "before_quality_status",
+        "after_rows",
+        "after_missing_cells",
+        "after_confirmed_missing_dates",
+        "after_duplicate_rows",
+        "after_blocked_anomalies",
+        "after_conditional_anomalies",
+        "after_quality_status",
+        "change_missing_cells",
+        "change_confirmed_missing_dates",
+        "change_duplicate_rows",
+        "change_blocked_anomalies",
+        "change_conditional_anomalies",
+        "final_status"
+      ]
+    },
+    {
+      "path": "handoff_summary/schema.csv",
+      "size_bytes": 1150,
+      "sha256": "ab220d5023608c5d86ba7de7e7a15288bd719f63c807cab63f812162e5df5573",
+      "created_at_utc": "2026-10-16T02:23:11.985470+00:00",
+      "rows": 20,
+      "columns": [
+        "column_name",
+        "data_type",
+        "meaning",
+        "missing_allowed"
+      ]
+    },
+    {
+      "path": "handoff_summary/validation_results.json",
+      "size_bytes": 1048,
+      "sha256": "4c7856393884a606ac23739e9d7944f06b3315e3ddff9fb467022e42c4847638",
+      "created_at_utc": "2026-10-16T02:23:11.991228+00:00"
+    }
+  ],
+  "validation": {
+    "required_summary_files_present": true,
+    "required_summary_files": {
+      "README_KR.md": true,
+      "manifest.json": true,
+      "schema.csv": true,
+      "quality_summary_by_ticker.csv": true,
+      "missing_summary_by_year.csv": true,
+      "repair_summary.csv": true,
+      "decision_brief.md": true,
+      "validation_results.json": true
+    },
+    "detail_file_size_limit_passed": true,
+    "detail_file_size_checks": {
+      "handoff_details/anomaly_dates.csv": true,
+      "handoff_details/missing_dates.csv": true,
+      "handoff_details/repair_audit.csv": true,
+      "handoff_details/source_comparison.csv": true,
+      "handoff_details/unresolved_cases.csv": true
+    },
+    "split_row_counts_match": true,
+    "split_validation": {
+      "missing_dates.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      },
+      "anomaly_dates.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      },
+      "repair_audit.csv": {
+        "source_rows": 1,
+        "part_rows": 1,
+        "row_count_match": true
+      },
+      "source_comparison.csv": {
+        "source_rows": 6,
+        "part_rows": 6,
+        "row_count_match": true
+      },
+      "unresolved_cases.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      }
+    },
+    "missing_list_has_no_duplicates": true,
+    "unresolved_problems_explicit": true,
+    "master_relationship": {
+      "path": "D:\\LAB\\01.SOP\\coding-ETF-test\\artifacts\\sample_validation\\repair\\SYNTHETIC_repaired_candidate.parquet",
+      "size_bytes": 11974,
+      "rows": 9,
+      "sha256": "4a4f589cb3d5458736fa050250cd8427e5216b28d2b4f62b631b7dc3a2ea46cb"
+    }
+  }
+}

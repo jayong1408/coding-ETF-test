@@ -1,0 +1,96 @@
+{
+  "generated_at_utc": "2026-10-16T02:23:11.814620+00:00",
+  "before": {
+    "generated_at_utc": "2026-10-16T02:23:11.656191+00:00",
+    "actual_data_run": false,
+    "sample_data": true,
+    "input_rows": 9,
+    "normalized_rows": 9,
+    "invalid_key_rows": 0,
+    "duplicate_rows": 0,
+    "missing_cells": 1,
+    "confirmed_missing_dates": 0,
+    "anomaly_rows": 0,
+    "quality_status_counts": {
+      "BLOCKED": 1,
+      "PASS": 1
+    },
+    "calendar_rule": "Only dates from a supplied calendar row with calendar_verified=true are classified as missing trading dates.",
+    "checks": {
+      "key_completeness": {
+        "passed": true,
+        "count": 0
+      },
+      "duplicate_keys": {
+        "passed": true,
+        "count": 0
+      },
+      "required_price_fields": {
+        "passed": false,
+        "count": 1
+      },
+      "confirmed_trading_dates": {
+        "passed": true,
+        "count": 0,
+        "requires_verified_calendar": true
+      },
+      "price_and_ohlc_rules": {
+        "passed": true,
+        "count": 0
+      },
+      "adjustment_and_return_review": {
+        "passed": true,
+        "count": 0
+      }
+    }
+  },
+  "after": {
+    "generated_at_utc": "2026-10-16T02:23:11.783272+00:00",
+    "actual_data_run": false,
+    "sample_data": true,
+    "input_rows": 9,
+    "normalized_rows": 9,
+    "invalid_key_rows": 0,
+    "duplicate_rows": 0,
+    "missing_cells": 0,
+    "confirmed_missing_dates": 0,
+    "anomaly_rows": 0,
+    "quality_status_counts": {
+      "PASS": 2
+    },
+    "calendar_rule": "Only dates from a supplied calendar row with calendar_verified=true are classified as missing trading dates.",
+    "checks": {
+      "key_completeness": {
+        "passed": true,
+        "count": 0
+      },
+      "duplicate_keys": {
+        "passed": true,
+        "count": 0
+      },
+      "required_price_fields": {
+        "passed": true,
+        "count": 0
+      },
+      "confirmed_trading_dates": {
+        "passed": true,
+        "count": 0,
+        "requires_verified_calendar": true
+      },
+      "price_and_ohlc_rules": {
+        "passed": true,
+        "count": 0
+      },
+      "adjustment_and_return_review": {
+        "passed": true,
+        "count": 0
+      }
+    }
+  },
+  "ticker_status_counts": {
+    "PASS": 2
+  },
+  "pass_rule": "PASS has no confirmed missing cells/dates, duplicate keys, blocking anomalies, conditional anomalies, and uses a verified trading calendar.",
+  "production_ready": true,
+  "sample_data": true
+}

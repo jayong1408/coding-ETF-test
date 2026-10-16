@@ -1,0 +1,21 @@
+{
+  "generated_at_utc": "2026-10-16T02:23:11.846285+00:00",
+  "overall_status": "BLOCKED",
+  "contract_status": "INFERRED_NOT_CONFIRMED",
+  "missing_required_columns": [],
+  "null_required_counts": {
+    "date": 0,
+    "market": 0,
+    "ticker": 0,
+    "adj_close": 0,
+    "volume": 0
+  },
+  "duplicate_keys": 0,
+  "input_rows": 9,
+  "admitted_rows": 0,
+  "blocked_rows": 9,
+  "feature_engine_schema_check": "PASSED",
+  "backtest_input_gate": "CONFIRMED_CONTRACT_AND_PASS_QUALITY_ONLY",
+  "integration_execution_status": "NOT_RUN_WITH_REAL_ALPHA_V1",
+  "sample_data": true
+}
