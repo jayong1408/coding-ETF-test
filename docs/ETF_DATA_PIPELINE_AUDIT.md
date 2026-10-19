@@ -105,8 +105,8 @@
 
 - 사용자 전달 정보에는 V2 Yahoo/yfinance 실행이 `synthetic_data_allowed=false`, 7종목·35,196행, `quality_flagged_rows=660`이었다고 기록되어 있다. 그러나 해당 `run_manifest.json`, `diagnostic_manifest.json`, `diagnostic_manifest_v3.json` 원파일은 작업 디렉터리와 저장소에서 발견되지 않아 해시·행 수·내용을 독립 검증하지 못했다. 이 수치는 `USER_REPORTED_NOT_LOCALLY_VERIFIED` 상태로만 유지한다.
 - 같은 이유로 Plus가 조사한 069500·102110·252670의 2023년 사례와 360750 의심 구간은 실제 복구 입력으로 사용하지 않았다. 검증 원자료와 manifest가 도착하기 전에는 master/candidate에 값을 채우지 않는다.
-- 자동 단위 테스트는 날짜, 360750 회귀, 캘린더 fail-closed, 결측/중복/OHLC, 연속 결측, 검증/미검증 복구, 기존 값 보존, Alpha 게이트, 인계 패키지를 포함한다.
-- 구현 커밋 반영 후 GitHub Actions의 push 및 pull_request 실행(헤드 `5b9ed311b358ccd683f6fb8eea7e78462a2c2dcb`)이 모두 성공했다.
+- 자동 단위 테스트 23개는 날짜, 360750 회귀, 캘린더 fail-closed, 스키마/자료형, 공통 결측, Open 단독 패턴, 결측/중복/OHLC, 연속 결측, source manifest, 검증/미검증 복구, 감사 일치, 멱등성, 합성/실제 분리, Alpha 게이트, 인계 패키지를 포함하며 모두 통과했다.
+- 합성 증거 커밋 `db05d4161cdbc6537f4a2b0b351182f22b08d28b`의 GitHub Actions push run `39187588387`과 pull_request run `39187592321`은 모두 성공했다. CI에서 단위 테스트, 합성 E2E, manifest 검증 복구 CLI, audit 검증 사후검사, 합성/운영 분리 assertion까지 통과했다.
 - `artifacts/sample_validation/`은 9행 합성 데이터로 만든 실행 증거다. 실제 ETF 데이터나 실제 복구 근거가 아니다.
 - 합성 실행에서 복구 전 `BLOCKED 1/PASS 1`, 검증된 합성 셀 1건 적용 후 `PASS 2`가 되었고 인계 파일 존재·크기·행 수·해시·중복 검사가 통과했다. Alpha 계약은 미확정이므로 입장 허용 행은 0건이다.
 - 실제 마스터/캘린더/원자료/Alpha 계약이 없으므로 실제 결측 원인 분석, 실제 복구, 운영 Alpha 통합은 미완료다.

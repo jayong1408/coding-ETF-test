@@ -5,7 +5,10 @@
 작업 브랜치: `rebuild/etf-master-v2`
 
 Draft PR: #2 (`rebuild/etf-master-v2` → `main`)
+
 산출물 생성 코드: `defe49d8ab6921f4dec9d7fc02378e157da576b5`
+
+원격 CI 검증 커밋: `db05d4161cdbc6537f4a2b0b351182f22b08d28b`
 
 ## 먼저 읽을 파일
 
@@ -20,6 +23,7 @@ Draft PR: #2 (`rebuild/etf-master-v2` → `main`)
 
 - 작업 시작 시 원격/로컬 HEAD `c323823`과 PR #2의 open/draft, mergeable/clean 상태를 확인했다.
 - `c323823`의 push Actions run `38844062915`와 PR Actions run `38844067484`는 성공 상태였다.
+- 변경 반영 후 `db05d41`의 push Actions run `39187588387`과 PR Actions run `39187592321`도 모두 성공했다. PR #2는 open/draft, mergeable/clean으로 재확인했다.
 - GitHub 공개 API에서 `jayong1408`의 공개 저장소는 `coding-ETF-test` 하나만 확인됐다. 실제 Alpha V1 저장소/계약은 확인하지 못했다.
 - 작업 디렉터리에는 사용자 설명의 `run_manifest.json`, `diagnostic_manifest.json`, `diagnostic_manifest_v3.json`이 없다. 7종목·35,196행·`quality_flagged_rows=660` 수치는 사용자 전달 사실로만 보존하며 독립 검증하지 않았다.
 - 실제 가격 원자료나 Plus 복구 후보를 적용하지 않았고 원본 마스터도 수정하지 않았다.
