@@ -43,6 +43,21 @@ class DateAndQualityTests(unittest.TestCase):
             self.assertEqual(result.validation_results["execution_mode"], "STREAMING_DISK_STAGED_BY_INSTRUMENT")
             self.assertFalse(list(root.glob("etf_quality_stage_*.sqlite")))
 
+    def test_streaming_preserves_schema_failures_and_cross_ticker_missing_summary(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / "sample.csv"
+            pd.DataFrame([
+                price_row("2024-01-02", ticker="069500", adj_close=None),
+                price_row("2024-01-02", ticker="102110", adj_close=None),
+                price_row("2024-01-03", ticker="102110", close="bad-number"),
+            ]).to_csv(path, index=False)
+            result = assess_quality_streaming(path, batch_rows=1, staging_dir=root, sample_data=True)
+            self.assertIn("INVALID_NUMERIC_VALUE", set(result.schema_issues["issue"]))
+            self.assertEqual(result.common_missing_dates.iloc[0]["affected_ticker_count"], 2)
+            status = result.quality_summary_by_ticker.set_index("ticker")["quality_status"].to_dict()
+            self.assertEqual(status["102110"], "BLOCKED")
+
     def test_kr_midnight_is_not_shifted_to_previous_utc_day(self):
         frame = pd.DataFrame([price_row(pd.Timestamp("2022-12-22 00:00:00", tz="Asia/Seoul"))])
         normalized = normalize_master(frame)
@@ -82,6 +97,38 @@ class DateAndQualityTests(unittest.TestCase):
         self.assertEqual(len(result.missing_cells), 2)
         self.assertIn("HIGH_BELOW_LOW", set(result.anomaly_dates["issue"]))
         self.assertEqual(result.quality_summary_by_ticker.loc[0, "quality_status"], "BLOCKED")
+
+    def test_missing_column_and_invalid_numeric_value_are_explicit_schema_failures(self):
+        missing_column = pd.DataFrame([price_row("2024-01-02")]).drop(columns=["volume"])
+        missing_result = assess_quality(missing_column)
+        self.assertIn("MISSING_REQUIRED_COLUMN", set(missing_result.schema_issues["issue"]))
+        self.assertEqual(missing_result.quality_summary_by_ticker.loc[0, "quality_status"], "BLOCKED")
+
+        invalid_numeric = pd.DataFrame([price_row("2024-01-02", close="not-a-number")])
+        invalid_result = assess_quality(invalid_numeric)
+        issues = invalid_result.schema_issues[invalid_result.schema_issues["field"] == "close"]
+        self.assertEqual(issues.iloc[0]["issue"], "INVALID_NUMERIC_VALUE")
+        self.assertFalse(invalid_result.validation_results["checks"]["required_schema_and_types"]["passed"])
+
+    def test_common_missing_date_is_aggregated_across_tickers(self):
+        master = pd.DataFrame([
+            price_row("2024-01-02", ticker="069500", adj_close=None),
+            price_row("2024-01-02", ticker="102110", adj_close=None),
+        ])
+        result = assess_quality(master)
+        common = result.common_missing_dates.iloc[0]
+        self.assertEqual(common["affected_ticker_count"], 2)
+        self.assertEqual(common["fields"], "adj_close")
+        self.assertEqual(set(common["tickers"].split("|")), {"069500", "102110"})
+
+    def test_open_only_and_open_missing_patterns_are_explicit_anomalies(self):
+        master = pd.DataFrame([
+            price_row("2024-01-02", ticker="069500", high=None, low=None, close=None),
+            price_row("2024-01-02", ticker="102110", open=None),
+        ])
+        result = assess_quality(master)
+        self.assertIn("OPEN_ONLY_PRICE_PRESENT", set(result.anomaly_dates["issue"]))
+        self.assertIn("OPEN_MISSING_WITH_OTHER_OHLC_PRESENT", set(result.anomaly_dates["issue"]))
 
     def test_confirmed_gap_and_consecutive_run_are_reported(self):
         master = pd.DataFrame([price_row("2024-01-02"), price_row("2024-01-05")])

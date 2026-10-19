@@ -1,0 +1,16 @@
+{
+  "verification_status": "VERIFIED",
+  "verified_at_utc": "YYYY-MM-DDTHH:MM:SSZ",
+  "verification_basis": "Describe who or what verified the source, license, symbol/date/field mapping, and hash.",
+  "verified_source_file": {
+    "sha256": "SHA256_OF_THE_EXACT_REPAIR_INPUT_FILE",
+    "rows": 0
+  },
+  "source_evidence": [
+    {
+      "source_name": "Official/provider export name",
+      "source_uri": "https://provider.example/source",
+      "source_hash": "SHA256_OF_THE_ORIGINAL_UPSTREAM_FILE_REFERENCED_BY_SOURCE_ROWS"
+    }
+  ]
+}

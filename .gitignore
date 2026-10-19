@@ -3,3 +3,4 @@ __pycache__/
 .pytest_cache/
 .venv/
 ci_sample_output/
+ci_cli_output/

@@ -26,6 +26,70 @@ class RepairResult:
     summary: dict[str, Any]
 
 
+def _sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def validate_source_manifest(
+    source_path: str | Path,
+    manifest_path: str | Path,
+    source_frame: pd.DataFrame,
+) -> dict[str, Any]:
+    """Verify the operational repair input against an external evidence manifest.
+
+    A row marking itself VERIFIED is not sufficient.  The manifest must verify
+    the exact repair-input file and enumerate the upstream evidence identity
+    (name, URI, and original-source hash) used by every VERIFIED row.
+    """
+    source = Path(source_path)
+    manifest_file = Path(manifest_path)
+    manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+    if str(manifest.get("verification_status", "")).upper() != "VERIFIED":
+        raise ValueError("Source manifest verification_status must be VERIFIED")
+    if not str(manifest.get("verified_at_utc", "")).strip():
+        raise ValueError("Source manifest must record verified_at_utc")
+    if not str(manifest.get("verification_basis", "")).strip():
+        raise ValueError("Source manifest must record verification_basis")
+
+    file_record = manifest.get("verified_source_file")
+    if not isinstance(file_record, dict):
+        raise ValueError("Source manifest must contain verified_source_file")
+    expected_hash = str(file_record.get("sha256", "")).lower().strip()
+    actual_hash = _sha256_path(source)
+    if expected_hash != actual_hash:
+        raise ValueError("Verified source SHA-256 does not match the source manifest")
+    if "rows" in file_record and int(file_record["rows"]) != len(source_frame):
+        raise ValueError("Verified source row count does not match the source manifest")
+
+    missing_columns = [column for column in KEY_COLUMNS + PRICE_COLUMNS + PROVENANCE_COLUMNS if column not in source_frame.columns]
+    if missing_columns:
+        raise ValueError(f"Verified source is missing required columns: {missing_columns}")
+    evidence = manifest.get("source_evidence")
+    if not isinstance(evidence, list) or not evidence:
+        raise ValueError("Source manifest must contain non-empty source_evidence")
+    evidence_keys = {
+        (str(item.get("source_name", "")).strip(), str(item.get("source_uri", "")).strip(), str(item.get("source_hash", "")).strip())
+        for item in evidence if isinstance(item, dict)
+    }
+    verified_rows = source_frame[source_frame["verification_status"].astype(str).str.upper().eq("VERIFIED")]
+    uncovered = []
+    for index, row in verified_rows.iterrows():
+        key = (str(row["source_name"]).strip(), str(row["source_uri"]).strip(), str(row["source_hash"]).strip())
+        if key not in evidence_keys:
+            uncovered.append(str(index))
+    if uncovered:
+        raise ValueError(f"VERIFIED source rows are not covered by source_evidence: {','.join(uncovered[:20])}")
+    return {
+        "status": "PASS", "source_sha256": actual_hash,
+        "source_rows": int(len(source_frame)), "verified_rows": int(len(verified_rows)),
+        "evidence_records": int(len(evidence_keys)), "manifest_path": str(manifest_file.resolve()),
+    }
+
+
 def _is_valid_value(field: str, value: Any) -> tuple[bool, str]:
     if pd.isna(value):
         return False, "SOURCE_VALUE_MISSING"

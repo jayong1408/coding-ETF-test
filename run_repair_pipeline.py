@@ -9,7 +9,7 @@ from pathlib import Path
 import subprocess
 
 from etf_data_pipeline.handoff import sha256_file
-from etf_data_pipeline.repair import repair_master, write_repair_outputs
+from etf_data_pipeline.repair import repair_master, validate_source_manifest, write_repair_outputs
 from etf_data_pipeline.schema import read_table
 
 
@@ -24,8 +24,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--master", required=True)
     parser.add_argument("--verified-source", required=True)
+    parser.add_argument("--source-manifest", required=True, help="Evidence manifest for the exact verified-source file")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--candidate", help="New candidate path; must not already exist")
+    parser.add_argument("--sample-data", action="store_true", help="Label the run as synthetic test evidence")
     args = parser.parse_args()
     source_path = Path(args.master).resolve()
     candidate = Path(args.candidate).resolve() if args.candidate else Path(args.output_dir).resolve() / "ETF_Daily_Master_repaired_candidate.csv"
@@ -35,7 +37,10 @@ def main() -> None:
     output.mkdir(parents=True, exist_ok=True)
     try:
         verified_source = Path(args.verified_source).resolve()
-        result = repair_master(read_table(source_path), read_table(verified_source))
+        source_manifest = Path(args.source_manifest).resolve()
+        source_frame = read_table(verified_source)
+        source_manifest_validation = validate_source_manifest(verified_source, source_manifest, source_frame)
+        result = repair_master(read_table(source_path), source_frame)
         paths = write_repair_outputs(result, output, candidate_path=candidate)
         manifest = {
             "executed_at_utc": datetime.now(timezone.utc).isoformat(), "status": "COMPLETE",
@@ -43,10 +48,14 @@ def main() -> None:
             "inputs": {
                 "master": {"path": str(source_path), "sha256": sha256_file(source_path)},
                 "verified_source": {"path": str(verified_source), "sha256": sha256_file(verified_source)},
+                "source_manifest": {"path": str(source_manifest), "sha256": sha256_file(source_manifest)},
             },
-            "settings": {"allow_new_rows": True, "synthetic_or_interpolated_values_allowed": False},
-            "outputs": {name: str(path.resolve()) for name, path in paths.items()},
-            "summary": result.summary,
+            "settings": {"allow_new_rows": True, "synthetic_or_interpolated_values_allowed": False,
+                         "sample_data": args.sample_data},
+            "source_manifest_validation": source_manifest_validation,
+            "outputs": {name: {"path": str(path.resolve()), "sha256": sha256_file(path)} for name, path in paths.items()},
+            "summary": {**result.summary, "sample_data": args.sample_data,
+                        "actual_data_run": not args.sample_data, "production_repair_completed": False},
         }
         (output / "run_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
         print("Repair candidate written; original master was not modified.")
@@ -56,7 +65,7 @@ def main() -> None:
         failure = {
             "executed_at_utc": datetime.now(timezone.utc).isoformat(), "status": "FAILED",
             "error_type": type(exc).__name__, "error": str(exc),
-            "rerun": f"python run_repair_pipeline.py --master {args.master!r} --verified-source {args.verified_source!r} --output-dir {args.output_dir!r} --candidate {str(candidate)!r}",
+            "rerun": f"python run_repair_pipeline.py --master {args.master!r} --verified-source {args.verified_source!r} --source-manifest {args.source_manifest!r} --output-dir {args.output_dir!r} --candidate {str(candidate)!r}" + (" --sample-data" if args.sample_data else ""),
         }
         (output / "run_failure.json").write_text(json.dumps(failure, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(failure, ensure_ascii=False, indent=2))

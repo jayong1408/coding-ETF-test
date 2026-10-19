@@ -14,6 +14,7 @@ import pandas as pd
 
 KEY_COLUMNS = ["market", "ticker", "date"]
 PRICE_COLUMNS = ["open", "high", "low", "close", "adj_close", "volume"]
+REQUIRED_MASTER_COLUMNS = KEY_COLUMNS + PRICE_COLUMNS
 EXCHANGE_TIMEZONES = {"KR": "Asia/Seoul", "US": "America/New_York"}
 
 ALIASES = {
@@ -56,6 +57,117 @@ ALIASES = {
 
 def _alias_key(value: Any) -> str:
     return str(value).strip().casefold().replace("_", " ")
+
+
+def canonical_source_columns(frame: pd.DataFrame) -> dict[str, Any]:
+    """Map canonical field names to the source columns that provide them.
+
+    Exact canonical names win over aliases.  This is used before normalization
+    so missing columns and values that would be coerced to NaN remain auditable.
+    """
+    mapping: dict[str, Any] = {}
+    for column in frame.columns:
+        canonical = ALIASES.get(_alias_key(column))
+        if canonical and str(column) == canonical:
+            mapping[canonical] = column
+    for column in frame.columns:
+        canonical = ALIASES.get(_alias_key(column))
+        if canonical and canonical not in mapping:
+            mapping[canonical] = column
+    return mapping
+
+
+def inspect_master_contract(frame: pd.DataFrame, *, origin: str = "input") -> pd.DataFrame:
+    """Return explicit required-column and value-type violations.
+
+    The function never silently treats an unparseable numeric token as an
+    ordinary missing value.  Dataset-level missing-column failures and
+    row-level coercion failures are both BLOCKED findings.
+    """
+    columns = [
+        "scope", "row_number", "market", "ticker", "date_raw", "field",
+        "issue", "severity", "raw_value", "detail", "data_origin",
+    ]
+    if frame is None:
+        return pd.DataFrame([{
+            "scope": "DATASET", "row_number": pd.NA, "market": "", "ticker": "",
+            "date_raw": "", "field": "*", "issue": "INPUT_FRAME_MISSING",
+            "severity": "BLOCKED", "raw_value": "", "detail": "frame is required",
+            "data_origin": origin,
+        }], columns=columns)
+
+    mapping = canonical_source_columns(frame)
+    findings: list[dict[str, Any]] = []
+
+    def add(*, field: str, issue: str, detail: str, row_number: Any = pd.NA,
+            raw_value: Any = "", market: Any = "", ticker: Any = "",
+            date_raw: Any = "", scope: str = "ROW") -> None:
+        findings.append({
+            "scope": scope, "row_number": row_number, "market": market,
+            "ticker": ticker, "date_raw": date_raw, "field": field,
+            "issue": issue, "severity": "BLOCKED", "raw_value": raw_value,
+            "detail": detail, "data_origin": origin,
+        })
+
+    for field in REQUIRED_MASTER_COLUMNS:
+        if field not in mapping:
+            add(field=field, issue="MISSING_REQUIRED_COLUMN",
+                detail=f"required canonical column {field!r} or a supported alias is absent",
+                scope="DATASET")
+
+    market_values = (frame[mapping["market"]].astype("string").str.strip().str.upper()
+                     if "market" in mapping else pd.Series("", index=frame.index, dtype="string"))
+    ticker_source_values = (frame[mapping["ticker"]]
+                            if "ticker" in mapping else pd.Series("", index=frame.index, dtype="string"))
+    ticker_values = pd.Series(
+        [normalize_ticker(value, str(market)) for value, market in zip(ticker_source_values, market_values)],
+        index=frame.index, dtype="string",
+    )
+    date_values = (frame[mapping["date"]]
+                   if "date" in mapping else pd.Series(pd.NA, index=frame.index))
+
+    if "market" in mapping:
+        invalid = ~market_values.isin(EXCHANGE_TIMEZONES)
+        for position in np.flatnonzero(invalid.to_numpy()):
+            index = frame.index[position]
+            add(field="market", issue="INVALID_MARKET", detail="market must be KR or US",
+                row_number=position, raw_value=frame[mapping["market"]].iloc[position],
+                market=market_values.iloc[position], ticker=ticker_values.iloc[position],
+                date_raw=date_values.iloc[position])
+
+    if "ticker" in mapping:
+        invalid = (ticker_values.isna() | ticker_values.eq("")).fillna(True)
+        for position in np.flatnonzero(invalid.to_numpy()):
+            index = frame.index[position]
+            add(field="ticker", issue="INVALID_TICKER", detail="ticker must be non-empty",
+                row_number=position, raw_value=frame[mapping["ticker"]].iloc[position],
+                market=market_values.iloc[position], ticker=ticker_values.iloc[position],
+                date_raw=date_values.iloc[position])
+
+    if "date" in mapping:
+        for position, (value, market) in enumerate(zip(date_values, market_values)):
+            normalized, _, reason, _ = normalize_date_value(value, str(market))
+            if pd.isna(normalized):
+                add(field="date", issue="INVALID_DATE_VALUE", detail=reason,
+                    row_number=position, raw_value=value, market=market,
+                    ticker=ticker_values.iloc[position], date_raw=value)
+
+    for field in PRICE_COLUMNS:
+        if field not in mapping:
+            continue
+        source = frame[mapping[field]]
+        converted = pd.to_numeric(source, errors="coerce")
+        text = source.astype("string").str.strip()
+        invalid = (source.notna() & text.ne("").fillna(False) & converted.isna()).fillna(False)
+        for position in np.flatnonzero(invalid.to_numpy()):
+            index = frame.index[position]
+            add(field=field, issue="INVALID_NUMERIC_VALUE",
+                detail="value cannot be converted to the canonical numeric type",
+                row_number=position, raw_value=source.iloc[position],
+                market=market_values.iloc[position], ticker=ticker_values.iloc[position],
+                date_raw=date_values.iloc[position])
+
+    return pd.DataFrame(findings, columns=columns)
 
 
 def normalize_ticker(value: Any, market: str) -> str:

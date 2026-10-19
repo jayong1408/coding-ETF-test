@@ -21,6 +21,8 @@ DETAIL_SPECS = {
     "repair_audit.csv": ["market", "ticker", "date", "field", "original_value", "replacement_value", "source_name", "source_uri", "repair_reason", "validation_result", "applied"],
     "source_comparison.csv": ["market", "ticker", "date", "field", "original_value", "source_value", "source_name", "source_uri", "verification_status", "comparison_status"],
     "unresolved_cases.csv": ["market", "ticker", "date", "field", "reason", "source_count"],
+    "common_missing_dates.csv": ["market", "date", "category", "status", "affected_ticker_count", "market_ticker_count", "affected_ratio", "tickers", "fields", "record_count"],
+    "schema_issues.csv": ["scope", "row_number", "market", "ticker", "date_raw", "field", "issue", "severity", "raw_value", "detail", "data_origin"],
 }
 
 
@@ -166,6 +168,8 @@ def build_handoff_package(
 
     detail_sources = {
         "anomaly_dates.csv": quality / "anomaly_dates.csv",
+        "common_missing_dates.csv": quality / "common_missing_dates.csv",
+        "schema_issues.csv": quality / "schema_issues.csv",
         "repair_audit.csv": repair / "repair_audit.csv" if repair else None,
         "source_comparison.csv": repair / "source_comparison.csv" if repair else None,
         "unresolved_cases.csv": repair / "unresolved_cases.csv" if repair else None,

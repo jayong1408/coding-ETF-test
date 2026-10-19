@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -11,8 +12,8 @@ import pandas as pd
 from etf_data_pipeline.alpha import check_alpha_compatibility, write_alpha_report
 from etf_data_pipeline.handoff import build_handoff_package
 from etf_data_pipeline.quality import assess_quality, write_quality_reports
-from etf_data_pipeline.repair import repair_master, write_repair_outputs
-from etf_data_pipeline.validation import compare_quality, write_validation_comparison
+from etf_data_pipeline.repair import repair_master, validate_source_manifest, write_repair_outputs
+from etf_data_pipeline.validation import compare_quality, verify_repair_audit, write_validation_comparison
 
 
 def price(date: str, ticker: str, base: float, **updates):
@@ -53,6 +54,20 @@ def main() -> None:
     master.to_csv(inputs / "SYNTHETIC_master.csv", index=False, encoding="utf-8")
     calendar.to_csv(calendar_path, index=False, encoding="utf-8")
     source.to_csv(source_path, index=False, encoding="utf-8")
+    source_file_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
+    source_manifest = {
+        "verification_status": "VERIFIED", "verified_at_utc": "2026-10-16T00:00:00Z",
+        "verification_basis": "SYNTHETIC_TEST_FIXTURE_ONLY",
+        "verified_source_file": {"sha256": source_file_hash, "rows": len(source)},
+        "source_evidence": [{
+            "source_name": "SYNTHETIC_TEST_SOURCE",
+            "source_uri": "synthetic://sample/069500/2024-01-03",
+            "source_hash": "SYNTHETIC_HASH_NOT_EVIDENCE",
+        }],
+    }
+    source_manifest_path = inputs / "SYNTHETIC_source_manifest.json"
+    source_manifest_path.write_text(json.dumps(source_manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    source_manifest_validation = validate_source_manifest(source_path, source_manifest_path, source)
     (inputs / "README.md").write_text("# Synthetic fixtures\n\nThese files are generated test data, not market observations and not repair evidence.\n", encoding="utf-8")
 
     before = assess_quality(master, calendar=calendar, origin="SYNTHETIC_TEST_DATA", sample_data=True)
@@ -60,6 +75,9 @@ def main() -> None:
     repair = repair_master(master, source)
     candidate_path = repair_dir / "SYNTHETIC_repaired_candidate.parquet"
     write_repair_outputs(repair, repair_dir, candidate_path=candidate_path)
+    audit_discrepancies, audit_validation = verify_repair_audit(master, repair.candidate, repair.repair_audit)
+    audit_discrepancies.to_csv(repair_dir / "repair_audit_discrepancies.csv", index=False, encoding="utf-8")
+    (repair_dir / "repair_audit_validation.json").write_text(json.dumps(audit_validation, ensure_ascii=False, indent=2), encoding="utf-8")
     after = assess_quality(repair.candidate, calendar=calendar, origin="SYNTHETIC_TEST_DATA", sample_data=True)
     write_quality_reports(after, after_dir)
     comparison, validation = compare_quality(before, after)
@@ -73,6 +91,8 @@ def main() -> None:
                                     output_dir=root / "handoff", max_file_bytes=1_000_000, sample_data=True)
     run = {"sample_data": True, "production_repair_completed": False, "source_master_rows": len(master),
            "candidate_rows": len(repair.candidate), "repairs_applied": len(repair.repair_audit),
+           "source_manifest_validation": source_manifest_validation,
+           "repair_audit_validation": audit_validation,
            "before_statuses": before.quality_summary_by_ticker["quality_status"].value_counts().to_dict(),
            "after_statuses": after.quality_summary_by_ticker["quality_status"].value_counts().to_dict(),
            "alpha_contract_status": alpha_report["contract_status"], "alpha_admitted_rows": len(admitted),

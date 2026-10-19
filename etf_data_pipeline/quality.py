@@ -10,13 +10,13 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from .schema import KEY_COLUMNS, PRICE_COLUMNS, normalize_calendar, normalize_master
+from .schema import KEY_COLUMNS, PRICE_COLUMNS, inspect_master_contract, normalize_calendar, normalize_master
 
 
 @dataclass(frozen=True)
 class QualityConfig:
     required_price_fields: tuple[str, ...] = tuple(PRICE_COLUMNS)
-    maximum_price: float = 1_000_000_000.0
+    maximum_price: float | None = None
     return_outlier_abs: float = 0.50
     adjustment_factor_jump_abs: float = 0.20
 
@@ -33,6 +33,8 @@ class QualityResult:
     missing_summary_by_date: pd.DataFrame
     missing_summary_by_column: pd.DataFrame
     missing_summary_by_year: pd.DataFrame
+    common_missing_dates: pd.DataFrame
+    schema_issues: pd.DataFrame
     validation_results: dict[str, Any]
 
 
@@ -73,6 +75,43 @@ def _add_anomaly(rows: list[dict[str, Any]], row: pd.Series, issue: str, severit
     })
 
 
+def summarize_common_missing_dates(
+    missing_cells: pd.DataFrame,
+    missing_dates: pd.DataFrame,
+    quality_summary: pd.DataFrame,
+) -> pd.DataFrame:
+    """Aggregate dates where two or more instruments have missing evidence."""
+    columns = [
+        "market", "date", "category", "status", "affected_ticker_count",
+        "market_ticker_count", "affected_ratio", "tickers", "fields", "record_count",
+    ]
+    records = pd.concat([
+        missing_cells.reindex(columns=["market", "ticker", "date", "field", "category", "status"]),
+        missing_dates.reindex(columns=["market", "ticker", "date", "field", "category", "status"]),
+    ], ignore_index=True)
+    if records.empty:
+        return _empty(columns)
+    market_counts = (quality_summary.groupby("market")["ticker"].nunique().to_dict()
+                     if not quality_summary.empty else {})
+    output: list[dict[str, Any]] = []
+    for (market, date_value, category, status), group in records.groupby(
+        ["market", "date", "category", "status"], dropna=False
+    ):
+        tickers = sorted({str(value) for value in group["ticker"].dropna()})
+        if len(tickers) < 2:
+            continue
+        total = int(market_counts.get(market, len(tickers)))
+        fields = sorted({str(value) for value in group["field"].dropna()})
+        output.append({
+            "market": market, "date": date_value, "category": category, "status": status,
+            "affected_ticker_count": len(tickers), "market_ticker_count": total,
+            "affected_ratio": len(tickers) / total if total else np.nan,
+            "tickers": "|".join(tickers), "fields": "|".join(fields),
+            "record_count": int(len(group)),
+        })
+    return pd.DataFrame(output, columns=columns)
+
+
 def assess_quality(
     frame: pd.DataFrame,
     *,
@@ -83,6 +122,7 @@ def assess_quality(
     sample_data: bool = False,
 ) -> QualityResult:
     config = config or QualityConfig()
+    schema_issues = inspect_master_contract(frame, origin=origin)
     data = normalize_master(frame, origin=origin)
     valid_key_mask = data[KEY_COLUMNS].notna().all(axis=1) & data["ticker"].ne("") & data["market"].isin(["KR", "US"])
     invalid_key_count = int((~valid_key_mask).sum())
@@ -101,11 +141,17 @@ def assess_quality(
             value = row[field]
             if pd.notna(value) and value <= 0:
                 _add_anomaly(anomaly_rows, row, "NON_POSITIVE_PRICE", "BLOCKED", field, value, "price must be positive")
-            elif pd.notna(value) and value > config.maximum_price:
+            elif pd.notna(value) and config.maximum_price is not None and value > config.maximum_price:
                 _add_anomaly(anomaly_rows, row, "PRICE_ABOVE_CONFIGURED_MAX", "BLOCKED", field, value,
                              f"price exceeds configured maximum {config.maximum_price}")
         if pd.notna(row["volume"]) and row["volume"] < 0:
             _add_anomaly(anomaly_rows, row, "NEGATIVE_VOLUME", "BLOCKED", "volume", row["volume"], "volume must be non-negative")
+        if pd.notna(row["open"]) and all(pd.isna(row[field]) for field in ["high", "low", "close"]):
+            _add_anomaly(anomaly_rows, row, "OPEN_ONLY_PRICE_PRESENT", "BLOCKED", "open", row["open"],
+                         "open is present while high, low, and close are all missing")
+        if pd.isna(row["open"]) and any(pd.notna(row[field]) for field in ["high", "low", "close"]):
+            _add_anomaly(anomaly_rows, row, "OPEN_MISSING_WITH_OTHER_OHLC_PRESENT", "BLOCKED", "open", row["open"],
+                         "open is missing while another OHLC value is present")
         if pd.notna(row["high"]) and pd.notna(row["low"]) and row["high"] < row["low"]:
             _add_anomaly(anomaly_rows, row, "HIGH_BELOW_LOW", "BLOCKED", "high", row["high"], "high < low")
         comparable = [row[x] for x in ["open", "low", "close"] if pd.notna(row[x])]
@@ -183,9 +229,13 @@ def assess_quality(
     missing_date_counts = missing_dates.groupby(["market", "ticker"]).size() if not missing_dates.empty else pd.Series(dtype=int)
     blocked_counts = anomalies[anomalies["severity"] == "BLOCKED"].groupby(["market", "ticker"]).size() if not anomalies.empty else pd.Series(dtype=int)
     conditional_counts = anomalies[anomalies["severity"] == "CONDITIONAL"].groupby(["market", "ticker"]).size() if not anomalies.empty else pd.Series(dtype=int)
+    schema_blocked_by_ticker = (schema_issues[(schema_issues["severity"] == "BLOCKED") & schema_issues["market"].notna() & schema_issues["ticker"].notna()]
+                                .groupby(["market", "ticker"]).size() if not schema_issues.empty else pd.Series(dtype=int))
+    global_schema_blocked = int(((schema_issues["severity"] == "BLOCKED") & (schema_issues["scope"] == "DATASET")).sum()) if not schema_issues.empty else 0
     for (market, ticker), group in data[valid_key_mask].groupby(["market", "ticker"]):
         key = (market, ticker)
-        blocking = int(duplicate_counts.get(key, 0) + missing_cell_counts.get(key, 0) + missing_date_counts.get(key, 0) + blocked_counts.get(key, 0))
+        schema_blocking = int(schema_blocked_by_ticker.get(key, 0)) + global_schema_blocked
+        blocking = int(duplicate_counts.get(key, 0) + missing_cell_counts.get(key, 0) + missing_date_counts.get(key, 0) + blocked_counts.get(key, 0) + schema_blocking)
         conditional = int(conditional_counts.get(key, 0))
         calendar_status = calendar_status_by_market.get(str(market), "NOT_PROVIDED")
         quality_status = "BLOCKED" if blocking else ("CONDITIONAL" if conditional or calendar_status != "VERIFIED" else "PASS")
@@ -194,6 +244,7 @@ def assess_quality(
             "rows": int(len(group)), "missing_cells": int(missing_cell_counts.get(key, 0)),
             "confirmed_missing_dates": int(missing_date_counts.get(key, 0)), "duplicate_rows": int(duplicate_counts.get(key, 0)),
             "blocked_anomalies": int(blocked_counts.get(key, 0)), "conditional_anomalies": conditional,
+            "schema_violations": schema_blocking,
             "calendar_status": calendar_status, "quality_status": quality_status,
         })
     quality_summary = pd.DataFrame(summaries)
@@ -215,6 +266,8 @@ def assess_quality(
         for column in ["missing_cell_count", "missing_date_count"]:
             by_year[column] = by_year[column].astype(int)
 
+    common_missing = summarize_common_missing_dates(missing_cells, missing_dates, quality_summary)
+
     status_counts = quality_summary["quality_status"].value_counts().to_dict() if not quality_summary.empty else {}
     validation_results = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -227,10 +280,19 @@ def assess_quality(
         "missing_cells": int(len(missing_cells)),
         "confirmed_missing_dates": int(len(missing_dates)),
         "anomaly_rows": int(len(anomalies)),
+        "schema_issue_rows": int(len(schema_issues)),
+        "common_missing_dates": int(len(common_missing)),
         "quality_status_counts": {str(key): int(value) for key, value in status_counts.items()},
+        "quality_rule_config": {
+            "maximum_price": config.maximum_price,
+            "return_outlier_abs": config.return_outlier_abs,
+            "adjustment_factor_jump_abs": config.adjustment_factor_jump_abs,
+            "threshold_policy": "Return and adjustment thresholds create review findings; no default absolute maximum price is assumed.",
+        },
         "calendar_rule": "Only dates from a supplied calendar row with calendar_verified=true are classified as missing trading dates.",
         "checks": {
             "key_completeness": {"passed": invalid_key_count == 0, "count": invalid_key_count},
+            "required_schema_and_types": {"passed": schema_issues.empty, "count": int(len(schema_issues))},
             "duplicate_keys": {"passed": len(duplicates) == 0, "count": int(len(duplicates))},
             "required_price_fields": {"passed": len(missing_cells) == 0, "count": int(len(missing_cells))},
             "confirmed_trading_dates": {"passed": len(missing_dates) == 0, "count": int(len(missing_dates)), "requires_verified_calendar": True},
@@ -240,8 +302,14 @@ def assess_quality(
                                              "count": int((anomalies["severity"] == "CONDITIONAL").sum()) if not anomalies.empty else 0},
         },
     }
-    return QualityResult(data, quality_summary, missing_cells, missing_dates, runs, anomalies, duplicates,
-                         by_date, by_column, by_year, validation_results)
+    return QualityResult(
+        normalized=data, quality_summary_by_ticker=quality_summary,
+        missing_cells=missing_cells, missing_dates=missing_dates, missing_runs=runs,
+        anomaly_dates=anomalies, duplicate_keys=duplicates,
+        missing_summary_by_date=by_date, missing_summary_by_column=by_column,
+        missing_summary_by_year=by_year, common_missing_dates=common_missing,
+        schema_issues=schema_issues, validation_results=validation_results,
+    )
 
 
 def _json_default(value: Any) -> Any:
@@ -267,6 +335,8 @@ def write_quality_reports(result: QualityResult, output_dir: str | Path) -> dict
         "missing_summary_by_date.csv": result.missing_summary_by_date,
         "missing_summary_by_column.csv": result.missing_summary_by_column,
         "missing_summary_by_year.csv": result.missing_summary_by_year,
+        "common_missing_dates.csv": result.common_missing_dates,
+        "schema_issues.csv": result.schema_issues,
     }
     paths: dict[str, Path] = {}
     for name, frame in frames.items():

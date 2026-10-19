@@ -9,8 +9,8 @@ from typing import Any
 
 import pandas as pd
 
-from .quality import QualityConfig, QualityResult, assess_quality
-from .schema import KEY_COLUMNS, iter_table_chunks, normalize_master
+from .quality import QualityConfig, QualityResult, assess_quality, summarize_common_missing_dates
+from .schema import KEY_COLUMNS, inspect_master_contract, iter_table_chunks, normalize_master
 
 
 def _concat(results: list[QualityResult], attribute: str) -> pd.DataFrame:
@@ -43,12 +43,19 @@ def assess_quality_streaming(
     input_rows = 0
     invalid_key_rows = 0
     results: list[QualityResult] = []
+    schema_issue_parts: list[pd.DataFrame] = []
     connection = sqlite3.connect(stage_path)
     try:
         with connection:
             first = True
             for number, chunk in enumerate(iter_table_chunks(path, batch_rows=batch_rows), start=1):
-                normalized = normalize_master(chunk, origin=f"{Path(path).resolve()}#chunk={number}")
+                chunk_origin = f"{Path(path).resolve()}#chunk={number}"
+                issues = inspect_master_contract(chunk, origin=chunk_origin)
+                if not issues.empty:
+                    issues = issues.copy()
+                    issues["input_chunk"] = number
+                    schema_issue_parts.append(issues)
+                normalized = normalize_master(chunk, origin=chunk_origin)
                 input_rows += len(chunk)
                 valid = normalized[KEY_COLUMNS].notna().all(axis=1) & normalized["ticker"].ne("") & normalized["market"].isin(["KR", "US"])
                 invalid_key_rows += int((~valid).sum())
@@ -90,6 +97,23 @@ def assess_quality_streaming(
     by_date = _concat(results, "missing_summary_by_date")
     by_column = _concat(results, "missing_summary_by_column")
     by_year = _concat(results, "missing_summary_by_year")
+    schema_issues = pd.concat(schema_issue_parts, ignore_index=True) if schema_issue_parts else (
+        results[0].schema_issues.iloc[0:0].copy() if results else pd.DataFrame()
+    )
+    if not schema_issues.empty:
+        dataset_mask = schema_issues["scope"].eq("DATASET")
+        dataset_issues = schema_issues[dataset_mask].drop_duplicates(["field", "issue", "detail"])
+        schema_issues = pd.concat([dataset_issues, schema_issues[~dataset_mask]], ignore_index=True)
+        global_count = int(schema_issues["scope"].eq("DATASET").sum())
+        row_counts = schema_issues[~schema_issues["scope"].eq("DATASET")].groupby(["market", "ticker"]).size()
+        if "schema_violations" not in quality_summary:
+            quality_summary["schema_violations"] = 0
+        for index, row in quality_summary.iterrows():
+            count = global_count + int(row_counts.get((row["market"], row["ticker"]), 0))
+            quality_summary.at[index, "schema_violations"] = int(quality_summary.at[index, "schema_violations"]) + count
+            if count:
+                quality_summary.at[index, "quality_status"] = "BLOCKED"
+    common_missing = summarize_common_missing_dates(missing_cells, missing_dates, quality_summary)
     blocking_anomalies = int((anomalies["severity"] == "BLOCKED").sum()) if not anomalies.empty else 0
     conditional_anomalies = int((anomalies["severity"] == "CONDITIONAL").sum()) if not anomalies.empty else 0
     status_counts = quality_summary["quality_status"].value_counts().to_dict() if not quality_summary.empty else {}
@@ -100,10 +124,18 @@ def assess_quality_streaming(
         "input_rows": int(input_rows), "normalized_rows": int(input_rows), "invalid_key_rows": int(invalid_key_rows),
         "duplicate_rows": int(len(duplicates)), "missing_cells": int(len(missing_cells)),
         "confirmed_missing_dates": int(len(missing_dates)), "anomaly_rows": int(len(anomalies)),
+        "schema_issue_rows": int(len(schema_issues)), "common_missing_dates": int(len(common_missing)),
         "quality_status_counts": {str(key): int(value) for key, value in status_counts.items()},
+        "quality_rule_config": {
+            "maximum_price": config.maximum_price,
+            "return_outlier_abs": config.return_outlier_abs,
+            "adjustment_factor_jump_abs": config.adjustment_factor_jump_abs,
+            "threshold_policy": "Return and adjustment thresholds create review findings; no default absolute maximum price is assumed.",
+        },
         "calendar_rule": "Only dates from a supplied calendar row with calendar_verified=true are classified as missing trading dates.",
         "checks": {
             "key_completeness": {"passed": invalid_key_rows == 0, "count": int(invalid_key_rows)},
+            "required_schema_and_types": {"passed": schema_issues.empty, "count": int(len(schema_issues))},
             "duplicate_keys": {"passed": len(duplicates) == 0, "count": int(len(duplicates))},
             "required_price_fields": {"passed": len(missing_cells) == 0, "count": int(len(missing_cells))},
             "confirmed_trading_dates": {"passed": len(missing_dates) == 0, "count": int(len(missing_dates)), "requires_verified_calendar": True},
@@ -111,5 +143,11 @@ def assess_quality_streaming(
             "adjustment_and_return_review": {"passed": conditional_anomalies == 0, "count": conditional_anomalies},
         },
     }
-    return QualityResult(pd.DataFrame(), quality_summary, missing_cells, missing_dates, missing_runs, anomalies, duplicates,
-                         by_date, by_column, by_year, validation)
+    return QualityResult(
+        normalized=pd.DataFrame(), quality_summary_by_ticker=quality_summary,
+        missing_cells=missing_cells, missing_dates=missing_dates, missing_runs=missing_runs,
+        anomaly_dates=anomalies, duplicate_keys=duplicates,
+        missing_summary_by_date=by_date, missing_summary_by_column=by_column,
+        missing_summary_by_year=by_year, common_missing_dates=common_missing,
+        schema_issues=schema_issues, validation_results=validation,
+    )

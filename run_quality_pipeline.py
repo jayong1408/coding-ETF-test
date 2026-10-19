@@ -54,7 +54,10 @@ def main() -> None:
                 "calendar": {"path": str(calendar_path), "sha256": sha256_file(calendar_path)} if calendar_path else None,
                 "actions": {"path": str(actions_path), "sha256": sha256_file(actions_path)} if actions_path else None,
             },
-            "settings": {"sample_data": args.sample_data, "batch_rows": args.batch_rows, "in_memory": args.in_memory},
+            "settings": {
+                "sample_data": args.sample_data, "batch_rows": args.batch_rows, "in_memory": args.in_memory,
+                "quality_rules": result.validation_results.get("quality_rule_config", {}),
+            },
             "code_version": git_version(),
             "outputs": {key: str(value.resolve()) for key, value in paths.items()},
             "status": "COMPLETE",
