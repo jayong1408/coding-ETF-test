@@ -4,6 +4,22 @@
   "source_master_rows": 9,
   "candidate_rows": 9,
   "repairs_applied": 1,
+  "source_manifest_validation": {
+    "status": "PASS",
+    "source_sha256": "edd6cef2d352b294afb481b25789b5c8f8d6d8392f549dd43f904028f5227949",
+    "source_rows": 1,
+    "verified_rows": 1,
+    "evidence_records": 1,
+    "manifest_path": "D:\\LAB\\01.SOP\\coding-ETF-test\\artifacts\\sample_validation\\inputs\\SYNTHETIC_source_manifest.json"
+  },
+  "repair_audit_validation": {
+    "generated_at_utc": "2026-10-19T01:54:48.971577+00:00",
+    "status": "PASS",
+    "changed_price_cells": 1,
+    "applied_audit_rows": 1,
+    "discrepancies": 0,
+    "rule": "Every changed price cell must have exactly one applied audit whose original and replacement values match."
+  },
   "before_statuses": {
     "BLOCKED": 1,
     "PASS": 1
@@ -28,8 +44,10 @@
     "detail_file_size_limit_passed": true,
     "detail_file_size_checks": {
       "handoff_details/anomaly_dates.csv": true,
+      "handoff_details/common_missing_dates.csv": true,
       "handoff_details/missing_dates.csv": true,
       "handoff_details/repair_audit.csv": true,
+      "handoff_details/schema_issues.csv": true,
       "handoff_details/source_comparison.csv": true,
       "handoff_details/unresolved_cases.csv": true
     },
@@ -41,6 +59,16 @@
         "row_count_match": true
       },
       "anomaly_dates.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      },
+      "common_missing_dates.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      },
+      "schema_issues.csv": {
         "source_rows": 0,
         "part_rows": 0,
         "row_count_match": true
@@ -67,7 +95,7 @@
       "path": "D:\\LAB\\01.SOP\\coding-ETF-test\\artifacts\\sample_validation\\repair\\SYNTHETIC_repaired_candidate.parquet",
       "size_bytes": 11974,
       "rows": 9,
-      "sha256": "4a4f589cb3d5458736fa050250cd8427e5216b28d2b4f62b631b7dc3a2ea46cb"
+      "sha256": "0927b69ef43ab4e1be433a9374a0b2a63daa22be4fda35d68533244304c45ed6"
     }
   }
 }

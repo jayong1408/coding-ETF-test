@@ -1,17 +1,17 @@
 {
-  "generated_at_utc": "2026-10-16T02:23:11.991228+00:00",
+  "generated_at_utc": "2026-10-19T01:54:49.241901+00:00",
   "files": [
     {
       "path": "handoff_summary/decision_brief.md",
       "size_bytes": 662,
       "sha256": "58fd05fa2740daa6626bca6786662032f0ac3b870273a5ff78b7609e0fa70a29",
-      "created_at_utc": "2026-10-16T02:23:11.957458+00:00"
+      "created_at_utc": "2026-10-19T01:54:49.220170+00:00"
     },
     {
       "path": "handoff_summary/missing_summary_by_year.csv",
       "size_bytes": 58,
       "sha256": "7de8cb4791bae99ef8a86253bed1018fa4fca28c822b788aeb602c66266e10e0",
-      "created_at_utc": "2026-10-16T02:23:11.957458+00:00",
+      "created_at_utc": "2026-10-19T01:54:49.220170+00:00",
       "rows": 0,
       "columns": [
         "market",
@@ -23,9 +23,9 @@
     },
     {
       "path": "handoff_summary/quality_summary_by_ticker.csv",
-      "size_bytes": 283,
-      "sha256": "74ac16441f4effbe276faeb387110052ac4846fee8420c2afbcf455196dddfc5",
-      "created_at_utc": "2026-10-16T02:23:11.973432+00:00",
+      "size_bytes": 305,
+      "sha256": "6dacc52cf5534c8dff70a2d8acd8f4f91b3906b24adc02a5e50327f07858f56f",
+      "created_at_utc": "2026-10-19T01:54:49.220170+00:00",
       "rows": 2,
       "columns": [
         "market",
@@ -38,6 +38,7 @@
         "duplicate_rows",
         "blocked_anomalies",
         "conditional_anomalies",
+        "schema_violations",
         "calendar_status",
         "quality_status"
       ]
@@ -46,13 +47,13 @@
       "path": "handoff_summary/README_KR.md",
       "size_bytes": 457,
       "sha256": "9046853fb298e2001f57ec743eba594d693ddfac3a2b37a66ea0869089a1c5d7",
-      "created_at_utc": "2026-10-16T02:23:11.979450+00:00"
+      "created_at_utc": "2026-10-19T01:54:49.220170+00:00"
     },
     {
       "path": "handoff_summary/repair_summary.csv",
       "size_bytes": 596,
       "sha256": "d1fa579c4344de28856cdd854d357f36eaef465ac46a5682473f2f38dba9a782",
-      "created_at_utc": "2026-10-16T02:23:11.981457+00:00",
+      "created_at_utc": "2026-10-19T01:54:49.234134+00:00",
       "rows": 2,
       "columns": [
         "market",
@@ -83,7 +84,7 @@
       "path": "handoff_summary/schema.csv",
       "size_bytes": 1150,
       "sha256": "ab220d5023608c5d86ba7de7e7a15288bd719f63c807cab63f812162e5df5573",
-      "created_at_utc": "2026-10-16T02:23:11.985470+00:00",
+      "created_at_utc": "2026-10-19T01:54:49.237886+00:00",
       "rows": 20,
       "columns": [
         "column_name",
@@ -94,9 +95,9 @@
     },
     {
       "path": "handoff_summary/validation_results.json",
-      "size_bytes": 1048,
-      "sha256": "4c7856393884a606ac23739e9d7944f06b3315e3ddff9fb467022e42c4847638",
-      "created_at_utc": "2026-10-16T02:23:11.991228+00:00"
+      "size_bytes": 1454,
+      "sha256": "de05da073d99b8b5872ca924e00e37ba62863d0fbc84078b139036b2ad74df56",
+      "created_at_utc": "2026-10-19T01:54:49.239894+00:00"
     }
   ],
   "validation": {
@@ -114,8 +115,10 @@
     "detail_file_size_limit_passed": true,
     "detail_file_size_checks": {
       "handoff_details/anomaly_dates.csv": true,
+      "handoff_details/common_missing_dates.csv": true,
       "handoff_details/missing_dates.csv": true,
       "handoff_details/repair_audit.csv": true,
+      "handoff_details/schema_issues.csv": true,
       "handoff_details/source_comparison.csv": true,
       "handoff_details/unresolved_cases.csv": true
     },
@@ -127,6 +130,16 @@
         "row_count_match": true
       },
       "anomaly_dates.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      },
+      "common_missing_dates.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      },
+      "schema_issues.csv": {
         "source_rows": 0,
         "part_rows": 0,
         "row_count_match": true
@@ -153,7 +166,7 @@
       "path": "D:\\LAB\\01.SOP\\coding-ETF-test\\artifacts\\sample_validation\\repair\\SYNTHETIC_repaired_candidate.parquet",
       "size_bytes": 11974,
       "rows": 9,
-      "sha256": "4a4f589cb3d5458736fa050250cd8427e5216b28d2b4f62b631b7dc3a2ea46cb"
+      "sha256": "0927b69ef43ab4e1be433a9374a0b2a63daa22be4fda35d68533244304c45ed6"
     }
   }
 }

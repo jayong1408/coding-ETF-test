@@ -1,21 +1,21 @@
 {
-  "generated_at_utc": "2026-10-16T02:23:11.991228+00:00",
+  "generated_at_utc": "2026-10-19T01:54:49.241901+00:00",
   "package_kind": "FREE_ACCOUNT_HANDOFF",
-  "code_version": "1c4d4effc3ab599d1679677abdfc93f62f9c38ba",
+  "code_version": "defe49d8ab6921f4dec9d7fc02378e157da576b5",
   "sample_data": true,
   "max_file_bytes": 1000000,
   "source_master": {
     "path": "D:\\LAB\\01.SOP\\coding-ETF-test\\artifacts\\sample_validation\\repair\\SYNTHETIC_repaired_candidate.parquet",
     "size_bytes": 11974,
     "rows": 9,
-    "sha256": "4a4f589cb3d5458736fa050250cd8427e5216b28d2b4f62b631b7dc3a2ea46cb"
+    "sha256": "0927b69ef43ab4e1be433a9374a0b2a63daa22be4fda35d68533244304c45ed6"
   },
   "files": [
     {
       "path": "handoff_details/anomaly_dates.csv",
       "size_bytes": 54,
       "sha256": "b5f50da8a8ff26118b5aebf799d13fa4e7dce888553bc5e181bd0aa8ca49a038",
-      "created_at_utc": "2026-10-16T02:23:12.086746+00:00",
+      "created_at_utc": "2026-10-19T01:54:49.354602+00:00",
       "rows": 0,
       "columns": [
         "market",
@@ -31,10 +31,31 @@
       "period_end": null
     },
     {
+      "path": "handoff_details/common_missing_dates.csv",
+      "size_bytes": 114,
+      "sha256": "d6af8c02dd62f4f0b284c712887941903bc95a64c824a01989b436b7ae98122d",
+      "created_at_utc": "2026-10-19T01:54:49.361563+00:00",
+      "rows": 0,
+      "columns": [
+        "market",
+        "date",
+        "category",
+        "status",
+        "affected_ticker_count",
+        "market_ticker_count",
+        "affected_ratio",
+        "tickers",
+        "fields",
+        "record_count"
+      ],
+      "period_start": null,
+      "period_end": null
+    },
+    {
       "path": "handoff_details/missing_dates.csv",
       "size_bytes": 76,
       "sha256": "734cf29dab31684460e655a979cfdea1d61d9e3d328c3a09cfb4802f22dc4f21",
-      "created_at_utc": "2026-10-16T02:23:12.086746+00:00",
+      "created_at_utc": "2026-10-19T01:54:49.361563+00:00",
       "rows": 0,
       "columns": [
         "market",
@@ -53,7 +74,7 @@
       "path": "handoff_details/repair_audit.csv",
       "size_bytes": 345,
       "sha256": "0ea6af8fde0973f85c3ff6469876f132e38de90adb10078675cef3995d954b2d",
-      "created_at_utc": "2026-10-16T02:23:12.102376+00:00",
+      "created_at_utc": "2026-10-19T01:54:49.361563+00:00",
       "rows": 1,
       "columns": [
         "market",
@@ -74,10 +95,30 @@
       "period_end": "2024-01-03"
     },
     {
+      "path": "handoff_details/schema_issues.csv",
+      "size_bytes": 91,
+      "sha256": "05fd38aa2a481dd111f5e7b65232d1f7b6cef25be4d957bb68f1e62387cccc82",
+      "created_at_utc": "2026-10-19T01:54:49.361563+00:00",
+      "rows": 0,
+      "columns": [
+        "scope",
+        "row_number",
+        "market",
+        "ticker",
+        "date_raw",
+        "field",
+        "issue",
+        "severity",
+        "raw_value",
+        "detail",
+        "data_origin"
+      ]
+    },
+    {
       "path": "handoff_details/source_comparison.csv",
       "size_bytes": 796,
       "sha256": "864c29dc0215f2e707e2019ce611b03d51d8c5586544ead01c963aaae68fbb50",
-      "created_at_utc": "2026-10-16T02:23:12.107838+00:00",
+      "created_at_utc": "2026-10-19T01:54:49.377617+00:00",
       "rows": 6,
       "columns": [
         "market",
@@ -98,7 +139,7 @@
       "path": "handoff_details/unresolved_cases.csv",
       "size_bytes": 46,
       "sha256": "963410f239bef2e6936782df266f0f84bf6ffbf1702a3d50206856952e717372",
-      "created_at_utc": "2026-10-16T02:23:12.114962+00:00",
+      "created_at_utc": "2026-10-19T01:54:49.377617+00:00",
       "rows": 0,
       "columns": [
         "market",
@@ -115,25 +156,25 @@
       "path": "HANDOFF_README_KR.md",
       "size_bytes": 425,
       "sha256": "b587ff8c91d26b9f4744cec6f572e1c5b2b011248ad8de1af48b09fe9530590b",
-      "created_at_utc": "2026-10-16T02:23:12.122833+00:00"
+      "created_at_utc": "2026-10-19T01:54:49.377617+00:00"
     },
     {
       "path": "handoff_summary/decision_brief.md",
       "size_bytes": 662,
       "sha256": "58fd05fa2740daa6626bca6786662032f0ac3b870273a5ff78b7609e0fa70a29",
-      "created_at_utc": "2026-10-16T02:23:12.124840+00:00"
+      "created_at_utc": "2026-10-19T01:54:49.377617+00:00"
     },
     {
       "path": "handoff_summary/manifest.json",
-      "size_bytes": 5029,
-      "sha256": "55fa38da2ed3ab459bdaf87f54acbc078f59e1ff6ee6e0c750406b20205c9467",
-      "created_at_utc": "2026-10-16T02:23:12.126850+00:00"
+      "size_bytes": 5423,
+      "sha256": "5d34f6845865110f3ef41eaab996e058b55e178047c8369bc7cdcd314cf6ad30",
+      "created_at_utc": "2026-10-19T01:54:49.377617+00:00"
     },
     {
       "path": "handoff_summary/missing_summary_by_year.csv",
       "size_bytes": 58,
       "sha256": "7de8cb4791bae99ef8a86253bed1018fa4fca28c822b788aeb602c66266e10e0",
-      "created_at_utc": "2026-10-16T02:23:12.126850+00:00",
+      "created_at_utc": "2026-10-19T01:54:49.393559+00:00",
       "rows": 0,
       "columns": [
         "market",
@@ -145,9 +186,9 @@
     },
     {
       "path": "handoff_summary/quality_summary_by_ticker.csv",
-      "size_bytes": 283,
-      "sha256": "74ac16441f4effbe276faeb387110052ac4846fee8420c2afbcf455196dddfc5",
-      "created_at_utc": "2026-10-16T02:23:12.130935+00:00",
+      "size_bytes": 305,
+      "sha256": "6dacc52cf5534c8dff70a2d8acd8f4f91b3906b24adc02a5e50327f07858f56f",
+      "created_at_utc": "2026-10-19T01:54:49.397576+00:00",
       "rows": 2,
       "columns": [
         "market",
@@ -160,6 +201,7 @@
         "duplicate_rows",
         "blocked_anomalies",
         "conditional_anomalies",
+        "schema_violations",
         "calendar_status",
         "quality_status"
       ]
@@ -168,13 +210,13 @@
       "path": "handoff_summary/README_KR.md",
       "size_bytes": 457,
       "sha256": "9046853fb298e2001f57ec743eba594d693ddfac3a2b37a66ea0869089a1c5d7",
-      "created_at_utc": "2026-10-16T02:23:12.130935+00:00"
+      "created_at_utc": "2026-10-19T01:54:49.399584+00:00"
     },
     {
       "path": "handoff_summary/repair_summary.csv",
       "size_bytes": 596,
       "sha256": "d1fa579c4344de28856cdd854d357f36eaef465ac46a5682473f2f38dba9a782",
-      "created_at_utc": "2026-10-16T02:23:12.130935+00:00",
+      "created_at_utc": "2026-10-19T01:54:49.401591+00:00",
       "rows": 2,
       "columns": [
         "market",
@@ -205,7 +247,7 @@
       "path": "handoff_summary/schema.csv",
       "size_bytes": 1150,
       "sha256": "ab220d5023608c5d86ba7de7e7a15288bd719f63c807cab63f812162e5df5573",
-      "created_at_utc": "2026-10-16T02:23:12.130935+00:00",
+      "created_at_utc": "2026-10-19T01:54:49.405610+00:00",
       "rows": 20,
       "columns": [
         "column_name",
@@ -216,9 +258,9 @@
     },
     {
       "path": "handoff_summary/validation_results.json",
-      "size_bytes": 1048,
-      "sha256": "4c7856393884a606ac23739e9d7944f06b3315e3ddff9fb467022e42c4847638",
-      "created_at_utc": "2026-10-16T02:23:12.130935+00:00"
+      "size_bytes": 1454,
+      "sha256": "de05da073d99b8b5872ca924e00e37ba62863d0fbc84078b139036b2ad74df56",
+      "created_at_utc": "2026-10-19T01:54:49.407618+00:00"
     }
   ],
   "validation": {
@@ -236,8 +278,10 @@
     "detail_file_size_limit_passed": true,
     "detail_file_size_checks": {
       "handoff_details/anomaly_dates.csv": true,
+      "handoff_details/common_missing_dates.csv": true,
       "handoff_details/missing_dates.csv": true,
       "handoff_details/repair_audit.csv": true,
+      "handoff_details/schema_issues.csv": true,
       "handoff_details/source_comparison.csv": true,
       "handoff_details/unresolved_cases.csv": true
     },
@@ -249,6 +293,16 @@
         "row_count_match": true
       },
       "anomaly_dates.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      },
+      "common_missing_dates.csv": {
+        "source_rows": 0,
+        "part_rows": 0,
+        "row_count_match": true
+      },
+      "schema_issues.csv": {
         "source_rows": 0,
         "part_rows": 0,
         "row_count_match": true
@@ -275,7 +329,7 @@
       "path": "D:\\LAB\\01.SOP\\coding-ETF-test\\artifacts\\sample_validation\\repair\\SYNTHETIC_repaired_candidate.parquet",
       "size_bytes": 11974,
       "rows": 9,
-      "sha256": "4a4f589cb3d5458736fa050250cd8427e5216b28d2b4f62b631b7dc3a2ea46cb"
+      "sha256": "0927b69ef43ab4e1be433a9374a0b2a63daa22be4fda35d68533244304c45ed6"
     }
   },
   "source_to_summary_relationship": "Summary/detail reports are derived diagnostics; the original master is identified by path, row count, size, and SHA-256 and is not copied."

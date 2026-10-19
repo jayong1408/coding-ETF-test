@@ -10,6 +10,7 @@
     "duplicate_rows":0,
     "blocked_anomalies":0,
     "conditional_anomalies":0,
+    "schema_violations":0,
     "calendar_status":"VERIFIED",
     "quality_status":"PASS"
   },
@@ -24,6 +25,7 @@
     "duplicate_rows":0,
     "blocked_anomalies":0,
     "conditional_anomalies":0,
+    "schema_violations":0,
     "calendar_status":"VERIFIED",
     "quality_status":"PASS"
   }
