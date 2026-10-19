@@ -1,0 +1,16 @@
+{
+  "verification_status": "VERIFIED",
+  "verified_at_utc": "2026-10-16T00:00:00Z",
+  "verification_basis": "SYNTHETIC_TEST_FIXTURE_ONLY",
+  "verified_source_file": {
+    "sha256": "edd6cef2d352b294afb481b25789b5c8f8d6d8392f549dd43f904028f5227949",
+    "rows": 1
+  },
+  "source_evidence": [
+    {
+      "source_name": "SYNTHETIC_TEST_SOURCE",
+      "source_uri": "synthetic://sample/069500/2024-01-03",
+      "source_hash": "SYNTHETIC_HASH_NOT_EVIDENCE"
+    }
+  ]
+}

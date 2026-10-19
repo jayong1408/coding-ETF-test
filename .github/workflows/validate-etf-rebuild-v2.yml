@@ -1,0 +1,56 @@
+name: Validate ETF rebuild V2
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: ["rebuild/etf-master-v2"]
+
+jobs:
+  quality-and-repair-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install -r requirements-etf-data-pipeline.txt
+      - name: Compile Python script
+        run: python -m py_compile rebuild_etf_master_v2.py
+      - name: Compile diagnostic script
+        run: python -m py_compile diagnose_kr_etf_missing_data_v2.py
+      - name: Validate notebook JSON
+        run: python -c "import json; paths=['ETF_Daily_Master_V2_Colab.ipynb','Diagnose_KR_ETF_Missing_Data_V2.ipynb']; [json.load(open(p, encoding='utf-8')) for p in paths]; print('Notebook JSON valid')"
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Run synthetic end-to-end sample
+        run: python -m scripts.generate_sample_artifacts --output-dir ci_sample_output
+      - name: Run manifest-verified repair CLI smoke test
+        run: >-
+          python run_repair_pipeline.py
+          --master ci_sample_output/inputs/SYNTHETIC_master.parquet
+          --verified-source ci_sample_output/inputs/SYNTHETIC_verified_source.csv
+          --source-manifest ci_sample_output/inputs/SYNTHETIC_source_manifest.json
+          --output-dir ci_cli_output/repair
+          --candidate ci_cli_output/repair/candidate.parquet
+          --sample-data
+      - name: Run audit-verified validation CLI smoke test
+        run: >-
+          python validate_repair_pipeline.py
+          --before ci_sample_output/inputs/SYNTHETIC_master.parquet
+          --candidate ci_cli_output/repair/candidate.parquet
+          --calendar ci_sample_output/inputs/SYNTHETIC_calendar.csv
+          --repair-audit ci_cli_output/repair/repair_audit.csv
+          --repair-run-manifest ci_cli_output/repair/run_manifest.json
+          --output-dir ci_cli_output/validation
+          --sample-data
+      - name: Assert synthetic/production separation
+        run: python -c "import json; m=json.load(open('ci_cli_output/validation/run_manifest.json')); q=json.load(open('ci_cli_output/validation/after/validation_results.json')); assert m['sample_data'] and not m['production_ready']; assert q['sample_data'] and not q['actual_data_run']; assert m['repair_audit_validation']['status']=='PASS'"
+      - name: Upload synthetic evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: etf-pipeline-synthetic-evidence
+          path: |
+            ci_sample_output
+            ci_cli_output

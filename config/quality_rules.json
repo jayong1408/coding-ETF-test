@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "required_key": ["market", "ticker", "date"],
+  "required_price_fields": ["open", "high", "low", "close", "adj_close", "volume"],
+  "maximum_price": null,
+  "return_outlier_abs": 0.5,
+  "adjustment_factor_jump_abs": 0.2,
+  "threshold_policy": {
+    "maximum_price": "No universal maximum is assumed by default. A deployment may configure one with documented market and currency evidence.",
+    "return_outlier_abs": "A 50% absolute adjusted daily return is a review trigger (CONDITIONAL), not proof that the value is wrong.",
+    "adjustment_factor_jump_abs": "A 20% adjustment-factor change without supplied corporate-action evidence is a review trigger (CONDITIONAL), not an automatic repair instruction."
+  },
+  "status_policy": {
+    "PASS": "No schema/key/missing/duplicate/blocking/conditional findings and a verified trading calendar was supplied.",
+    "CONDITIONAL": "No blocking finding, but the calendar is unverified or a configured review threshold/corporate-action check needs evidence.",
+    "BLOCKED": "A required schema/key/cell, confirmed trading date, duplicate, non-positive price, negative volume, OHLC, or repair-audit rule failed."
+  }
+}

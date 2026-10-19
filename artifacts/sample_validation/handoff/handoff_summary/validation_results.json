@@ -1,0 +1,56 @@
+{
+  "generated_at_utc": "2026-10-19T01:54:49.037834+00:00",
+  "actual_data_run": false,
+  "sample_data": true,
+  "input_rows": 9,
+  "normalized_rows": 9,
+  "invalid_key_rows": 0,
+  "duplicate_rows": 0,
+  "missing_cells": 0,
+  "confirmed_missing_dates": 0,
+  "anomaly_rows": 0,
+  "schema_issue_rows": 0,
+  "common_missing_dates": 0,
+  "quality_status_counts": {
+    "PASS": 2
+  },
+  "quality_rule_config": {
+    "maximum_price": null,
+    "return_outlier_abs": 0.5,
+    "adjustment_factor_jump_abs": 0.2,
+    "threshold_policy": "Return and adjustment thresholds create review findings; no default absolute maximum price is assumed."
+  },
+  "calendar_rule": "Only dates from a supplied calendar row with calendar_verified=true are classified as missing trading dates.",
+  "checks": {
+    "key_completeness": {
+      "passed": true,
+      "count": 0
+    },
+    "required_schema_and_types": {
+      "passed": true,
+      "count": 0
+    },
+    "duplicate_keys": {
+      "passed": true,
+      "count": 0
+    },
+    "required_price_fields": {
+      "passed": true,
+      "count": 0
+    },
+    "confirmed_trading_dates": {
+      "passed": true,
+      "count": 0,
+      "requires_verified_calendar": true
+    },
+    "price_and_ohlc_rules": {
+      "passed": true,
+      "count": 0
+    },
+    "adjustment_and_return_review": {
+      "passed": true,
+      "count": 0
+    }
+  },
+  "handoff_sample_data": true
+}

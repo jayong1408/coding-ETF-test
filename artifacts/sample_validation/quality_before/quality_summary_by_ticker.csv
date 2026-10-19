@@ -1,0 +1,3 @@
+market,ticker,first_date,last_date,rows,missing_cells,confirmed_missing_dates,duplicate_rows,blocked_anomalies,conditional_anomalies,schema_violations,calendar_status,quality_status
+KR,069500,2024-01-02,2024-01-04,3,1,0,0,0,0,0,VERIFIED,BLOCKED
+KR,360750,2022-12-22,2022-12-29,6,0,0,0,0,0,0,VERIFIED,PASS
